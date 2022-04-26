@@ -30,7 +30,12 @@ or even just `go build`.
 
     $ make build-catalog
 
-    // then you can instantly execute it
-    $ ./build/catalog serve
+    // Next we need to initialize the database
+    $ edit ".env" file to set "POSTGRES_DSN"
+    $ ./bin/catalog db init
+    $ ./bin/catalog db migrate
+
+    // then you can run the HTTP server
+    $ ./bin/catalog serve
 
 Use the `GOOS` and `GOARCH` environment variables to cross-compile for a different architecture when needed.
