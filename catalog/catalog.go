@@ -1,6 +1,9 @@
 package catalog
 
 type Catalog interface {
-	ShouldUpgrade(OS string, Arch string, CurrentVersion string, WithUnstable bool) (Criticality, error)
-	UpgradePath(OS string, Arch string, CurrentVersion string, WithUnstable bool) (UpgradePath, error)
+	ShouldUpgrade(state ClientState) (Criticality, error)
+	// FindNextUpgrade should return nil if no update is available
+	FindNextUpgrade(state ClientState) (*UpgradeStep, error)
+	// FindUpgradePath should return nil if no update is available
+	FindUpgradePath(state ClientState) (*UpgradePath, error)
 }
