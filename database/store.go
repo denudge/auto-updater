@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/denudge/auto-updater/catalog"
 	"github.com/uptrace/bun"
+	"strings"
 )
 
 type DbCatalogStore struct {
@@ -34,10 +35,50 @@ func (store *DbCatalogStore) LatestReleases(limit int) ([]*catalog.Release, erro
 	return transformReleases(releases)
 }
 
-func (store *DbCatalogStore) Store(release *catalog.Release) error {
-	// TODO: Implement release storage
+func (store *DbCatalogStore) Store(release *catalog.Release, allowUpdate bool) (*catalog.Release, error) {
+	r := FromCatalogRelease(release)
 
-	return nil
+	stmt := store.db.NewInsert().
+		Model(&r)
+
+	if allowUpdate {
+		stmt = stmt.
+			// All fields except the ones in the unique constraint (as well as ID and date)
+			On("CONFLICT ON CONSTRAINT releases_ux DO UPDATE").
+			Set("name = EXCLUDED.name").
+			Set("description = EXCLUDED.description").
+			Set("alias = EXCLUDED.alias").
+			Set("unstable = EXCLUDED.unstable").
+			Set("signature = EXCLUDED.signature").
+			Set("tags = EXCLUDED.tags").
+			Set("upgrade_target = EXCLUDED.upgrade_target").
+			Set("should_upgrade = EXCLUDED.should_upgrade")
+	}
+
+	if _, err := stmt.Exec(store.ctx); err != nil {
+		// Instead of returning an error, we just return the older release
+		// So the caller can determine the release was already there
+		if !strings.Contains(err.Error(), "violates unique constraint") {
+			return nil, err
+		}
+	}
+
+	stored := Release{}
+	err := store.db.NewSelect().
+		Model(&stored).
+		Where("vendor = ?", release.Vendor).
+		Where("product = ?", release.Product).
+		Where("variant = ?", release.Variant).
+		Where("os = ?", release.OS).
+		Where("arch = ?", release.Arch).
+		Where("version = ?", release.Version).
+		Scan(store.ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return stored.ToCatalogRelease(), nil
 }
 
 func (store *DbCatalogStore) Fetch(filter catalog.Filter) ([]*catalog.Release, error) {

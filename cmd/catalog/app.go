@@ -38,7 +38,3 @@ func (app *App) ListLatestReleases() error {
 
 	return nil
 }
-
-func (app *App) Fetch(filter catalog.Filter) ([]*catalog.Release, error) {
-	return app.store.Fetch(filter)
-}

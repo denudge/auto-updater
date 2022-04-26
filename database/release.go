@@ -42,7 +42,28 @@ func (r *Release) ToCatalogRelease() *catalog.Release {
 		Alias:         r.Alias,
 		Signature:     r.Signature,
 		Tags:          r.Tags,
-		UpgradeTarget: catalog.UpgradeTarget(r.UpgradeTarget), // If empty, the default upgrade target will be used
+		UpgradeTarget: catalog.UpgradeTarget(r.UpgradeTarget),
 		ShouldUpgrade: catalog.Criticality(r.ShouldUpgrade),
+	}
+}
+
+func FromCatalogRelease(r *catalog.Release) Release {
+	return Release{
+		Vendor:        r.Vendor,
+		Product:       r.Product,
+		Name:          r.Name,
+		Variant:       r.Variant,
+		Description:   r.Description,
+		OS:            r.OS,
+		Arch:          r.Arch,
+		ReleasedAt:    r.Date,
+		Version:       r.Version,
+		Unstable:      r.Unstable,
+		Alias:         r.Alias,
+		Signature:     r.Signature,
+		Tags:          r.Tags,
+		UpgradeTarget: string(r.UpgradeTarget),
+		ShouldUpgrade: int(r.ShouldUpgrade),
+		UpdatedAt:     time.Now(),
 	}
 }

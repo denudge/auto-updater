@@ -15,7 +15,9 @@ CREATE TABLE releases (
   tags VARCHAR(127) ARRAY DEFAULT array[]::varchar[],
   upgrade_target VARCHAR(63) NULL DEFAULT NULL,
   should_upgrade INT NOT NULL DEFAULT 0,
-  updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
+  updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT releases_ux UNIQUE (version, arch, os, variant, product, vendor)
 );
 
 --bun:split
