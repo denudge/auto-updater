@@ -91,7 +91,7 @@ func (store *DbCatalogStore) Fetch(filter catalog.Filter) ([]*catalog.Release, e
 			Where("product = ?", filter.Product),
 		filter,
 	).
-		OrderExpr("id ASC").
+		OrderExpr("id DESC").
 		Scan(store.ctx)
 
 	if err != nil {

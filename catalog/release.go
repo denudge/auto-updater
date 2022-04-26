@@ -57,5 +57,5 @@ func (r *Release) String() string {
 		version = fmt.Sprintf("%s [unstable]", version)
 	}
 
-	return fmt.Sprintf("%s%s, version %s, released on %s", productName, arch, version, r.Date)
+	return fmt.Sprintf("%s%s, version %s, released on %s", productName, arch, version, r.Date.Format(time.RFC1123))
 }

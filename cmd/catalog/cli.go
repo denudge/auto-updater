@@ -42,6 +42,27 @@ func (app *App) createReleaseCommands() *cli.Command {
 				},
 			},
 			{
+				Name:  "list",
+				Usage: "list specific releases",
+				Flags: createFilterFields(),
+				Before: func(c *cli.Context) error {
+					return checkFilterArguments(c, "list")
+				},
+				Action: func(c *cli.Context) error {
+					filter := parseFilter(c)
+					releases, err := app.store.Fetch(filter)
+					if err != nil {
+						return err
+					}
+
+					for _, release := range releases {
+						fmt.Printf("%s\n", release)
+					}
+
+					return nil
+				},
+			},
+			{
 				Name:  "publish",
 				Usage: "publish new release",
 				Flags: []cli.Flag{
@@ -98,4 +119,49 @@ func (app *App) createReleaseCommands() *cli.Command {
 			},
 		},
 	}
+}
+
+func createFilterFields() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{Name: "vendor", Usage: "Vendor name"},
+		&cli.StringFlag{Name: "product", Usage: "Product name"},
+		&cli.StringFlag{Name: "min-version", Usage: "Minimal version in semantic versioning scheme"},
+		&cli.StringFlag{Name: "after-version", Usage: "Minimal excluded version in semantic versioning scheme"},
+		&cli.StringFlag{Name: "before-version", Usage: "Maximum excluded version in semantic versioning scheme"},
+		&cli.StringFlag{Name: "max-version", Usage: "Maximum version in semantic versioning scheme"},
+		&cli.StringFlag{Name: "name", Usage: "Product name (for printing)"},
+		&cli.StringFlag{Name: "variant", Usage: "Variant (Pro, Free, ...)"},
+		&cli.StringFlag{Name: "os", Usage: "Operating system (MacOS, darwin, linux, ...)"},
+		&cli.StringFlag{Name: "arch", Usage: "Architecture (i686, ppc64, ...)"},
+		&cli.StringFlag{Name: "alias", Usage: "Alias name for the release"},
+		&cli.BoolFlag{Name: "with-unstable", Usage: "Include unstable releases"},
+	}
+}
+
+func parseFilter(c *cli.Context) catalog.Filter {
+	return catalog.Filter{
+		Vendor:        c.String("vendor"),
+		Product:       c.String("product"),
+		Variant:       c.String("variant"),
+		MinVersion:    c.String("min-version"),
+		AfterVersion:  c.String("after-version"),
+		BeforeVersion: c.String("before-version"),
+		MaxVersion:    c.String("max-version"),
+		OS:            c.String("osName"),
+		Arch:          c.String("arch"),
+		Name:          c.String("name"),
+		Alias:         c.String("alias"),
+		WithUnstable:  c.Bool("with-unstable"),
+	}
+}
+
+func checkFilterArguments(c *cli.Context, command string) error {
+	// Check arguments
+	if c.String("vendor") == "" || c.String("product") == "" {
+		_ = cli.ShowCommandHelp(c, command)
+
+		return fmt.Errorf("At least vendor and product must be specified.\n")
+	}
+
+	return nil
 }
