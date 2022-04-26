@@ -34,7 +34,7 @@ func (store *DbCatalogStore) LatestReleases(limit int) ([]*catalog.Release, erro
 	return transformReleases(releases)
 }
 
-func (store *DbCatalogStore) Store(release catalog.Release) error {
+func (store *DbCatalogStore) Store(release *catalog.Release) error {
 	// TODO: Implement release storage
 
 	return nil
