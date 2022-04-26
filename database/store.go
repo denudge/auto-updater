@@ -35,6 +35,8 @@ func (store *DbCatalogStore) LatestReleases(limit int) ([]*catalog.Release, erro
 }
 
 func (store *DbCatalogStore) Store(release catalog.Release) error {
+	// TODO: Implement release storage
+
 	return nil
 }
 
@@ -59,14 +61,20 @@ func (store *DbCatalogStore) Fetch(filter catalog.Filter) ([]*catalog.Release, e
 }
 
 func (store *DbCatalogStore) SetCriticality(filter catalog.Filter, criticality catalog.Criticality) ([]*catalog.Release, error) {
+	// TODO: Implement update functionality
+
 	return store.Fetch(filter)
 }
 
 func (store *DbCatalogStore) SetStability(filter catalog.Filter, stability bool) ([]*catalog.Release, error) {
+	// TODO: Implement update functionality
+
 	return store.Fetch(filter)
 }
 
 func (store *DbCatalogStore) SetUpgradeTarget(filter catalog.Filter, target catalog.UpgradeTarget) ([]*catalog.Release, error) {
+	// TODO: Implement update functionality
+
 	return store.Fetch(filter)
 }
 
