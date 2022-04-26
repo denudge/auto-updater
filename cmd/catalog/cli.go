@@ -139,7 +139,7 @@ func createFilterFields() []cli.Flag {
 }
 
 func parseFilter(c *cli.Context) catalog.Filter {
-	return catalog.Filter{
+	filter := catalog.Filter{
 		Vendor:        c.String("vendor"),
 		Product:       c.String("product"),
 		Variant:       c.String("variant"),
@@ -153,6 +153,10 @@ func parseFilter(c *cli.Context) catalog.Filter {
 		Alias:         c.String("alias"),
 		WithUnstable:  c.Bool("with-unstable"),
 	}
+
+	filter.CompleteVersions()
+
+	return filter
 }
 
 func checkFilterArguments(c *cli.Context, command string) error {

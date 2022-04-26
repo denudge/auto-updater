@@ -82,6 +82,7 @@ func (store *DbCatalogStore) Store(release *catalog.Release, allowUpdate bool) (
 }
 
 func (store *DbCatalogStore) Fetch(filter catalog.Filter) ([]*catalog.Release, error) {
+	// Reserve at least some reasonable space
 	releases := make([]Release, 0, 16)
 
 	err := filterQuery(
@@ -96,6 +97,20 @@ func (store *DbCatalogStore) Fetch(filter catalog.Filter) ([]*catalog.Release, e
 
 	if err != nil {
 		return []*catalog.Release{}, err
+	}
+
+	if filter.FiltersVersions() {
+		filtered := make([]Release, 0, len(releases))
+
+		for _, release := range releases {
+			if !filter.MatchVersion(release.Version) {
+				continue
+			}
+
+			filtered = append(filtered, release)
+		}
+
+		releases = filtered
 	}
 
 	return transformReleases(releases)
