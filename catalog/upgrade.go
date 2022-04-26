@@ -82,9 +82,7 @@ func FindUpgradePath(availableReleases []*Release, currentVersion string) (*Upgr
 func FindNextUpgrade(availableReleases []*Release, currentVersion string) (*UpgradeStep, error) {
 	releaseMap, availableVersions := buildReleaseMap(availableReleases)
 
-	if currentVersion[0] != 'v' {
-		currentVersion = "v" + currentVersion
-	}
+	currentVersion = completeVersion(currentVersion)
 
 	currentVersionObj, ok := releaseMap[currentVersion]
 	if !ok {
@@ -143,16 +141,14 @@ func FindNextUpgrade(availableReleases []*Release, currentVersion string) (*Upgr
 }
 
 func buildReleaseMap(releases []*Release) (releaseMap map[string]*Release, availableVersions []string) {
+	// We can allocate the exact size needed here
 	releaseMap = make(map[string]*Release, len(releases))
-	availableVersions = make([]string, 0, len(releases))
+	availableVersions = make([]string, len(releases))
 
-	for _, release := range releases {
-		version := release.Version
-		if version[0] != 'v' {
-			version = "v" + version
-		}
+	for i, release := range releases {
+		version := completeVersion(release.Version)
 
-		availableVersions = append(availableVersions, version)
+		availableVersions[i] = version
 		releaseMap[version] = release
 	}
 

@@ -79,6 +79,14 @@ func FindTargetVersion(availableVersions []string, currentVersion string, target
 	return "", nil
 }
 
+func completeVersion(version string) string {
+	if len(version) > 0 && version[0] != 'v' {
+		return "v" + version
+	}
+
+	return version
+}
+
 func parseVersionInfo(version string) (VersionInfo, error) {
 	if !semver.IsValid(version) {
 		return VersionInfo{}, fmt.Errorf("is not a valid semantic version: %s", version)
