@@ -44,12 +44,12 @@ func (app *App) createReleaseCommands() *cli.Command {
 			{
 				Name:  "list",
 				Usage: "list specific releases",
-				Flags: createFilterFields(),
+				Flags: createFilterFlags(),
 				Before: func(c *cli.Context) error {
 					return checkFilterArguments(c, "list")
 				},
 				Action: func(c *cli.Context) error {
-					filter := parseFilter(c)
+					filter := parseFilterFlags(c)
 					releases, err := app.store.Fetch(filter)
 					if err != nil {
 						return err
@@ -65,19 +65,7 @@ func (app *App) createReleaseCommands() *cli.Command {
 			{
 				Name:  "publish",
 				Usage: "publish new release",
-				Flags: []cli.Flag{
-					&cli.StringFlag{Name: "vendor", Usage: "Vendor name"},
-					&cli.StringFlag{Name: "product", Usage: "Product name"},
-					&cli.StringFlag{Name: "version", Usage: "Version in semantic versioning scheme"},
-					&cli.StringFlag{Name: "name", Usage: "Optional: product name (for printing)"},
-					&cli.StringFlag{Name: "variant", Usage: "Optional: variant (Pro, Free, ...)"},
-					&cli.StringFlag{Name: "os", Usage: "Optional: operating system (MacOS, darwin, linux, ...)"},
-					&cli.StringFlag{Name: "arch", Usage: "Optional: architecture (i686, ppc64, ...)"},
-					&cli.StringFlag{Name: "description", Usage: "Optional: notes"},
-					&cli.StringFlag{Name: "alias", Usage: "Optional: alias name for the release"},
-					&cli.StringFlag{Name: "upgrade-target", Usage: "Optional: upgrade target for the release"},
-					&cli.BoolFlag{Name: "unstable", Usage: "Mark release as unstable"},
-				},
+				Flags: createReleaseFlags(),
 				Before: func(c *cli.Context) error {
 					// Check arguments
 					if c.String("vendor") == "" || c.String("product") == "" || c.String("version") == "" {
@@ -89,20 +77,7 @@ func (app *App) createReleaseCommands() *cli.Command {
 					return nil
 				},
 				Action: func(c *cli.Context) error {
-					release := &catalog.Release{
-						Vendor:        c.String("vendor"),
-						Product:       c.String("product"),
-						Variant:       c.String("variant"),
-						OS:            c.String("os"),
-						Arch:          c.String("arch"),
-						Version:       c.String("version"),
-						Date:          time.Now(),
-						Name:          c.String("name"),
-						Description:   c.String("description"),
-						Alias:         c.String("alias"),
-						Unstable:      c.Bool("unstable"),
-						UpgradeTarget: catalog.UpgradeTarget(c.String("upgrade-target")),
-					}
+					release := parseReleaseFlags(c)
 
 					stored, err := app.store.Store(release, false)
 					if err != nil {
@@ -121,7 +96,40 @@ func (app *App) createReleaseCommands() *cli.Command {
 	}
 }
 
-func createFilterFields() []cli.Flag {
+func createReleaseFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{Name: "vendor", Usage: "Vendor name"},
+		&cli.StringFlag{Name: "product", Usage: "Product name"},
+		&cli.StringFlag{Name: "version", Usage: "Version in semantic versioning scheme"},
+		&cli.StringFlag{Name: "name", Usage: "Optional: product name (for printing)"},
+		&cli.StringFlag{Name: "variant", Usage: "Optional: variant (Pro, Free, ...)"},
+		&cli.StringFlag{Name: "os", Usage: "Optional: operating system (MacOS, darwin, linux, ...)"},
+		&cli.StringFlag{Name: "arch", Usage: "Optional: architecture (i686, ppc64, ...)"},
+		&cli.StringFlag{Name: "description", Usage: "Optional: notes"},
+		&cli.StringFlag{Name: "alias", Usage: "Optional: alias name for the release"},
+		&cli.StringFlag{Name: "upgrade-target", Usage: "Optional: upgrade target for the release"},
+		&cli.BoolFlag{Name: "unstable", Usage: "Mark release as unstable"},
+	}
+}
+
+func parseReleaseFlags(c *cli.Context) *catalog.Release {
+	return &catalog.Release{
+		Vendor:        c.String("vendor"),
+		Product:       c.String("product"),
+		Variant:       c.String("variant"),
+		OS:            c.String("os"),
+		Arch:          c.String("arch"),
+		Version:       c.String("version"),
+		Date:          time.Now(),
+		Name:          c.String("name"),
+		Description:   c.String("description"),
+		Alias:         c.String("alias"),
+		Unstable:      c.Bool("unstable"),
+		UpgradeTarget: catalog.UpgradeTarget(c.String("upgrade-target")),
+	}
+}
+
+func createFilterFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{Name: "vendor", Usage: "Vendor name"},
 		&cli.StringFlag{Name: "product", Usage: "Product name"},
@@ -138,7 +146,7 @@ func createFilterFields() []cli.Flag {
 	}
 }
 
-func parseFilter(c *cli.Context) catalog.Filter {
+func parseFilterFlags(c *cli.Context) catalog.Filter {
 	filter := catalog.Filter{
 		Vendor:        c.String("vendor"),
 		Product:       c.String("product"),
