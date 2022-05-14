@@ -3,8 +3,8 @@ CREATE TABLE apps (
   vendor VARCHAR(255) NOT NULL,
   product VARCHAR(255) NOT NULL,
   "name" VARCHAR(255) NULL DEFAULT NULL,
-  is_active BOOL NOT NULL DEFAULT TRUE,
-  is_locked BOOL NOT NULL DEFAULT FALSE,
+  active BOOL NOT NULL DEFAULT TRUE,
+  "locked" BOOL NOT NULL DEFAULT FALSE,
   upgrade_target VARCHAR(63) NULL DEFAULT NULL,
   created_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -18,7 +18,7 @@ INSERT INTO apps (vendor, product, "name") SELECT DISTINCT vendor, product, "nam
 
 --bun:split
 
-UPDATE apps SET is_active = true WHERE is_locked = false;
+UPDATE apps SET active = true WHERE "locked" = false;
 
 --bun:split
 
