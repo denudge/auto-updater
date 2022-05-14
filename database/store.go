@@ -19,11 +19,57 @@ func NewDbCatalogStore(db *bun.DB, ctx context.Context) *DbCatalogStore {
 	}
 }
 
+func (store *DbCatalogStore) CreateApp(app *catalog.App, allowUpdate bool) (*catalog.App, error) {
+	a := FromCatalogApp(app)
+
+	stmt := store.db.NewInsert().
+		Model(&a)
+
+	if allowUpdate {
+		stmt = stmt.
+			// All fields except the ones in the unique constraint (as well as ID and date)
+			On("CONFLICT ON CONSTRAINT apps_ux DO UPDATE").
+			Set("name = EXCLUDED.name")
+	}
+
+	if _, err := stmt.Exec(store.ctx); err != nil {
+		// Instead of returning an error, we just return the older app
+		// So the caller can determine the app was already there
+		if !strings.Contains(err.Error(), "violates unique constraint") {
+			return nil, err
+		}
+	}
+
+	dbApp, err := store.GetApp(app.Vendor, app.Product)
+	if err != nil {
+		return nil, err
+	}
+
+	return dbApp.ToCatalogApp(), nil
+}
+
+func (store *DbCatalogStore) ListApps(limit int) ([]*catalog.App, error) {
+	apps := make([]App, 0, limit)
+
+	err := store.db.NewSelect().
+		Model(&apps).
+		OrderExpr("id DESC").
+		Limit(limit).
+		Scan(store.ctx)
+
+	if err != nil {
+		return []*catalog.App{}, err
+	}
+
+	return transformApps(apps)
+}
+
 func (store *DbCatalogStore) LatestReleases(limit int) ([]*catalog.Release, error) {
 	releases := make([]Release, 0, limit)
 
 	err := store.db.NewSelect().
 		Model(&releases).
+		Relation("App").
 		OrderExpr("id DESC").
 		Limit(limit).
 		Scan(store.ctx)
@@ -35,8 +81,18 @@ func (store *DbCatalogStore) LatestReleases(limit int) ([]*catalog.Release, erro
 	return transformReleases(releases)
 }
 
-func (store *DbCatalogStore) Store(release *catalog.Release, allowUpdate bool) (*catalog.Release, error) {
+func (store *DbCatalogStore) StoreRelease(
+	release *catalog.Release,
+	allowUpdate bool,
+) (*catalog.Release, error) {
 	r := FromCatalogRelease(release)
+
+	dbApp, err := store.GetApp(release.App.Vendor, release.App.Product)
+	if err != nil {
+		return nil, err
+	}
+
+	r.AppId = dbApp.Id
 
 	stmt := store.db.NewInsert().
 		Model(&r)
@@ -45,7 +101,6 @@ func (store *DbCatalogStore) Store(release *catalog.Release, allowUpdate bool) (
 		stmt = stmt.
 			// All fields except the ones in the unique constraint (as well as ID and date)
 			On("CONFLICT ON CONSTRAINT releases_ux DO UPDATE").
-			Set("name = EXCLUDED.name").
 			Set("description = EXCLUDED.description").
 			Set("alias = EXCLUDED.alias").
 			Set("unstable = EXCLUDED.unstable").
@@ -64,10 +119,10 @@ func (store *DbCatalogStore) Store(release *catalog.Release, allowUpdate bool) (
 	}
 
 	stored := Release{}
-	err := store.db.NewSelect().
+
+	err = store.db.NewSelect().
 		Model(&stored).
-		Where("vendor = ?", release.Vendor).
-		Where("product = ?", release.Product).
+		Where("app_id = ?", dbApp.Id).
 		Where("variant = ?", release.Variant).
 		Where("os = ?", release.OS).
 		Where("arch = ?", release.Arch).
@@ -81,7 +136,23 @@ func (store *DbCatalogStore) Store(release *catalog.Release, allowUpdate bool) (
 	return stored.ToCatalogRelease(), nil
 }
 
-func (store *DbCatalogStore) Fetch(filter catalog.Filter) ([]*catalog.Release, error) {
+func (store *DbCatalogStore) GetApp(vendor string, product string) (*App, error) {
+	app := App{}
+
+	err := store.db.NewSelect().
+		Model(&app).
+		Where("vendor = ?", vendor).
+		Where("product = ?", product).
+		Scan(store.ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &app, nil
+}
+
+func (store *DbCatalogStore) FetchReleases(filter catalog.Filter) ([]*catalog.Release, error) {
 	// Reserve at least some reasonable space
 	releases := make([]Release, 0, 16)
 
@@ -119,33 +190,19 @@ func (store *DbCatalogStore) Fetch(filter catalog.Filter) ([]*catalog.Release, e
 func (store *DbCatalogStore) SetCriticality(filter catalog.Filter, criticality catalog.Criticality) ([]*catalog.Release, error) {
 	// TODO: Implement update functionality
 
-	return store.Fetch(filter)
+	return store.FetchReleases(filter)
 }
 
 func (store *DbCatalogStore) SetStability(filter catalog.Filter, stability bool) ([]*catalog.Release, error) {
 	// TODO: Implement update functionality
 
-	return store.Fetch(filter)
+	return store.FetchReleases(filter)
 }
 
 func (store *DbCatalogStore) SetUpgradeTarget(filter catalog.Filter, target catalog.UpgradeTarget) ([]*catalog.Release, error) {
 	// TODO: Implement update functionality
 
-	return store.Fetch(filter)
-}
-
-func transformReleases(releases []Release) ([]*catalog.Release, error) {
-	if len(releases) < 1 {
-		return []*catalog.Release{}, nil
-	}
-
-	out := make([]*catalog.Release, len(releases))
-
-	for i, release := range releases {
-		out[i] = release.ToCatalogRelease()
-	}
-
-	return out, nil
+	return store.FetchReleases(filter)
 }
 
 func filterQuery(stmt *bun.SelectQuery, filter catalog.Filter) *bun.SelectQuery {

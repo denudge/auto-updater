@@ -6,9 +6,7 @@ import (
 )
 
 type Release struct {
-	Vendor        string // must be present and match a client's installation
-	Product       string // must be present and match a client's installation
-	Name          string // for printing; if not given, "<vendor> <product>" will be used
+	App           *App
 	Variant       string // sth like "Pro" or "Light" (if given it must match a client's installation)
 	Description   string
 	OS            string // sth like "MacOS", "darwin" or "linux"; if given it must match a client's installation
@@ -24,16 +22,12 @@ type Release struct {
 }
 
 type ReleaseHistory struct {
-	Vendor   string
-	Product  string
+	App      *App
 	Releases []Release
 }
 
 func (r *Release) String() string {
-	productName := r.Name
-	if productName == "" {
-		productName = fmt.Sprintf("%s %s", r.Vendor, r.Product)
-	}
+	productName := r.App.String()
 
 	if r.Variant != "" {
 		productName = fmt.Sprintf("%s %s", productName, r.Variant)

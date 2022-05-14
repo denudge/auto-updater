@@ -24,7 +24,49 @@ func NewCli(app *App, api *Api) *cli.App {
 					return nil
 				},
 			},
+			app.createAppCommands(),
 			app.createReleaseCommands(),
+		},
+	}
+}
+
+func (app *App) createAppCommands() *cli.Command {
+	return &cli.Command{
+		Name:  "app",
+		Usage: "app management",
+		Subcommands: []*cli.Command{
+			{
+				Name:  "create",
+				Usage: "create a new app",
+				Flags: createAppFlags(),
+				Before: func(c *cli.Context) error {
+					return checkFilterArguments(c, "create", "")
+				},
+				Action: func(c *cli.Context) error {
+					a := parseAppFlags(c)
+
+					stored, err := app.store.CreateApp(a, false)
+					if err != nil {
+						return err
+					}
+
+					// time.Time.Before() cannot be used because the database might drop fractional seconds
+					if stored.Created.Unix() < a.Created.Unix() {
+						fmt.Println("App has already been there.")
+					}
+
+					return nil
+				},
+			},
+			{
+				Name:  "list",
+				Usage: "list apps",
+				Flags: createLimitFlag(),
+				Action: func(c *cli.Context) error {
+					limit := parseLimitFlag(c, 10)
+					return app.ListApps(limit)
+				},
+			},
 		},
 	}
 }
@@ -37,20 +79,25 @@ func (app *App) createReleaseCommands() *cli.Command {
 			{
 				Name:  "latest",
 				Usage: "list recently published releases",
+				Flags: createFilterFlags(createLimitFlag()[0]),
+				Before: func(c *cli.Context) error {
+					return checkFilterArguments(c, "latest", "")
+				},
 				Action: func(c *cli.Context) error {
-					return app.ListLatestReleases()
+					limit := parseLimitFlag(c, 10)
+					return app.ListLatestReleases(limit)
 				},
 			},
 			{
 				Name:  "list",
 				Usage: "list specific releases",
-				Flags: createFilterFlags(),
+				Flags: createFilterFlags(createLimitFlag()[0]),
 				Before: func(c *cli.Context) error {
-					return checkFilterArguments(c, "list")
+					return checkFilterArguments(c, "list", "")
 				},
 				Action: func(c *cli.Context) error {
 					filter := parseFilterFlags(c)
-					releases, err := app.store.Fetch(filter)
+					releases, err := app.store.FetchReleases(filter)
 					if err != nil {
 						return err
 					}
@@ -79,7 +126,7 @@ func (app *App) createReleaseCommands() *cli.Command {
 				Action: func(c *cli.Context) error {
 					release := parseReleaseFlags(c)
 
-					stored, err := app.store.Store(release, false)
+					stored, err := app.store.StoreRelease(release, false)
 					if err != nil {
 						return err
 					}
@@ -92,7 +139,68 @@ func (app *App) createReleaseCommands() *cli.Command {
 					return nil
 				},
 			},
+			{
+				Name:  "set-upgrade-target",
+				Usage: "Set the upgrade target",
+				Flags: createFilterFlags(&cli.StringFlag{Name: "upgrade-target", Usage: "The desired upgrade target"}),
+				Before: func(c *cli.Context) error {
+					err := checkFilterArguments(c, "set-upgrade-target", "upgrade-target")
+					if err != nil {
+						return err
+					}
+
+					return nil
+				},
+				Action: func(c *cli.Context) error {
+					value := c.String("upgrade-target")
+
+					if !catalog.UpgradeTarget(value).IsValid() {
+						return fmt.Errorf("is not a valid upgrade target: %s\n", value)
+					}
+
+					fmt.Printf("Setting the upgrade target to %s\n", value)
+
+					return nil
+				},
+			},
 		},
+	}
+}
+
+func createLimitFlag() []cli.Flag {
+	return []cli.Flag{
+		&cli.IntFlag{Name: "limit", Usage: ""},
+	}
+}
+
+func parseLimitFlag(c *cli.Context, defaultValue int) int {
+	given := c.String("limit")
+	if given == "" {
+		return defaultValue
+	}
+
+	return c.Int("limit")
+}
+
+func createAppFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{Name: "vendor", Usage: "Vendor name"},
+		&cli.StringFlag{Name: "product", Usage: "Product name"},
+		&cli.StringFlag{Name: "name", Usage: "Product name (for printing)"},
+		&cli.BoolFlag{Name: "active", Usage: ""},
+		&cli.BoolFlag{Name: "locked", Usage: ""},
+		&cli.StringFlag{Name: "upgrade-target", Usage: "Optional: upgrade target for the app"},
+	}
+}
+
+func parseAppFlags(c *cli.Context) *catalog.App {
+	return &catalog.App{
+		Vendor:        c.String("vendor"),
+		Product:       c.String("product"),
+		Name:          c.String("name"),
+		Active:        c.Bool("active"),
+		Locked:        c.Bool("locked"),
+		UpgradeTarget: catalog.UpgradeTarget(c.String("upgrade-target")),
 	}
 }
 
@@ -114,14 +222,16 @@ func createReleaseFlags() []cli.Flag {
 
 func parseReleaseFlags(c *cli.Context) *catalog.Release {
 	return &catalog.Release{
-		Vendor:        c.String("vendor"),
-		Product:       c.String("product"),
+		App: &catalog.App{
+			Vendor:  c.String("vendor"),
+			Product: c.String("product"),
+			Name:    c.String("name"),
+		},
 		Variant:       c.String("variant"),
 		OS:            c.String("os"),
 		Arch:          c.String("arch"),
 		Version:       c.String("version"),
 		Date:          time.Now(),
-		Name:          c.String("name"),
 		Description:   c.String("description"),
 		Alias:         c.String("alias"),
 		Unstable:      c.Bool("unstable"),
@@ -129,8 +239,8 @@ func parseReleaseFlags(c *cli.Context) *catalog.Release {
 	}
 }
 
-func createFilterFlags() []cli.Flag {
-	return []cli.Flag{
+func createFilterFlags(additionalFlag cli.Flag) []cli.Flag {
+	flags := []cli.Flag{
 		&cli.StringFlag{Name: "vendor", Usage: "Vendor name"},
 		&cli.StringFlag{Name: "product", Usage: "Product name"},
 		&cli.StringFlag{Name: "min-version", Usage: "Minimal version in semantic versioning scheme"},
@@ -144,6 +254,12 @@ func createFilterFlags() []cli.Flag {
 		&cli.StringFlag{Name: "alias", Usage: "Alias name for the release"},
 		&cli.BoolFlag{Name: "with-unstable", Usage: "Include unstable releases"},
 	}
+
+	if additionalFlag != nil {
+		flags = append(flags, additionalFlag)
+	}
+
+	return flags
 }
 
 func parseFilterFlags(c *cli.Context) catalog.Filter {
@@ -167,12 +283,18 @@ func parseFilterFlags(c *cli.Context) catalog.Filter {
 	return filter
 }
 
-func checkFilterArguments(c *cli.Context, command string) error {
+func checkFilterArguments(c *cli.Context, command string, additionalField string) error {
 	// Check arguments
-	if c.String("vendor") == "" || c.String("product") == "" {
+	if c.String("vendor") == "" || c.String("product") == "" ||
+		(additionalField != "" && c.String(additionalField) == "") {
 		_ = cli.ShowCommandHelp(c, command)
 
-		return fmt.Errorf("At least vendor and product must be specified.\n")
+		requiredFields := "vendor and product"
+		if additionalField != "" {
+			requiredFields = "vendor, product and " + additionalField
+		}
+
+		return fmt.Errorf("At least %s must be specified.\n", requiredFields)
 	}
 
 	return nil

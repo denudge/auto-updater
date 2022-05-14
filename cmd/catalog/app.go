@@ -20,14 +20,33 @@ func NewApp(db *bun.DB, ctx context.Context) *App {
 	}
 }
 
-func (app *App) ListLatestReleases() error {
+func (app *App) ListApps(limit int) error {
+	dbStore, ok := app.store.(*database.DbCatalogStore)
+	if !ok {
+		fmt.Printf("Cannot print apps")
+		return nil
+	}
+
+	latest, err := dbStore.ListApps(limit)
+	if err != nil {
+		return err
+	}
+
+	for _, release := range latest {
+		fmt.Printf("%s\n", release)
+	}
+
+	return nil
+}
+
+func (app *App) ListLatestReleases(limit int) error {
 	dbStore, ok := app.store.(*database.DbCatalogStore)
 	if !ok {
 		fmt.Printf("Cannot print latest releases")
 		return nil
 	}
 
-	latest, err := dbStore.LatestReleases(10)
+	latest, err := dbStore.LatestReleases(limit)
 	if err != nil {
 		return err
 	}

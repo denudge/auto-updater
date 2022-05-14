@@ -8,10 +8,9 @@ import (
 
 type Release struct {
 	bun.BaseModel `bun:"table:releases"`
-	ID            int64     `bun:"id,pk,autoincrement"`
-	Vendor        string    `bun:"vendor"`
-	Product       string    `bun:"product"`
-	Name          string    `bun:"name"`
+	Id            int64     `bun:"id,pk,autoincrement"`
+	AppId         int64     `bun:"app_id"`
+	App           *App      `bun:"rel:belongs-to,join:app_id=id"`
 	Variant       string    `bun:"variant"`
 	Description   string    `bun:"description"`
 	OS            string    `bun:"os"`
@@ -29,9 +28,11 @@ type Release struct {
 
 func (r *Release) ToCatalogRelease() *catalog.Release {
 	return &catalog.Release{
-		Vendor:        r.Vendor,
-		Product:       r.Product,
-		Name:          r.Name,
+		App: &catalog.App{
+			Vendor:  r.App.Vendor,
+			Product: r.App.Product,
+			Name:    r.App.Name,
+		},
 		Variant:       r.Variant,
 		Description:   r.Description,
 		OS:            r.OS,
@@ -49,9 +50,6 @@ func (r *Release) ToCatalogRelease() *catalog.Release {
 
 func FromCatalogRelease(r *catalog.Release) Release {
 	return Release{
-		Vendor:        r.Vendor,
-		Product:       r.Product,
-		Name:          r.Name,
 		Variant:       r.Variant,
 		Description:   r.Description,
 		OS:            r.OS,
@@ -66,4 +64,18 @@ func FromCatalogRelease(r *catalog.Release) Release {
 		ShouldUpgrade: int(r.ShouldUpgrade),
 		UpdatedAt:     time.Now(),
 	}
+}
+
+func transformReleases(releases []Release) ([]*catalog.Release, error) {
+	if len(releases) < 1 {
+		return []*catalog.Release{}, nil
+	}
+
+	out := make([]*catalog.Release, len(releases))
+
+	for i, release := range releases {
+		out[i] = release.ToCatalogRelease()
+	}
+
+	return out, nil
 }
