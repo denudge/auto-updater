@@ -1,6 +1,6 @@
 CREATE TABLE releases (
   id SERIAL PRIMARY KEY,
-  vendor VARCHAR(255) NULL,
+  vendor VARCHAR(255) NOT NULL,
   product VARCHAR(255) NOT NULL,
   "name" VARCHAR(255) NULL DEFAULT NULL,
   variant VARCHAR(127) NULL DEFAULT NULL,
@@ -22,4 +22,4 @@ CREATE TABLE releases (
 
 --bun:split
 
-CREATE INDEX IF NOT EXISTS releases_vendor_product ON releases (vendor, product);
+CREATE INDEX releases_vendor_product ON releases (vendor, product);
