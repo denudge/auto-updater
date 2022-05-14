@@ -18,6 +18,10 @@ INSERT INTO apps (vendor, product, "name") SELECT DISTINCT vendor, product, "nam
 
 --bun:split
 
+UPDATE apps SET is_active = true WHERE is_locked = false;
+
+--bun:split
+
 ALTER TABLE releases ADD COLUMN app_id INTEGER NULL DEFAULT NULL;
 
 --bun:split
