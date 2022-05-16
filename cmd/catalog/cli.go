@@ -126,6 +126,13 @@ func (app *App) createReleaseCommands() *cli.Command {
 				Action: func(c *cli.Context) error {
 					release := parseReleaseFlags(c)
 
+					storedApp, err := app.store.FindApp(release.App.Vendor, release.App.Vendor)
+					if err != nil || storedApp == nil {
+						fmt.Printf("App \"%s\" not found. Please create the app first.\n", release.App.String())
+
+						return nil
+					}
+
 					stored, err := app.store.StoreRelease(release, false)
 					if err != nil {
 						return err

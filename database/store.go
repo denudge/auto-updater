@@ -40,7 +40,11 @@ func (store *DbCatalogStore) CreateApp(app *catalog.App, allowUpdate bool) (*cat
 		}
 	}
 
-	dbApp, err := store.GetApp(app.Vendor, app.Product)
+	return store.FindApp(app.Vendor, app.Product)
+}
+
+func (store *DbCatalogStore) FindApp(vendor string, product string) (*catalog.App, error) {
+	dbApp, err := store.GetApp(vendor, product)
 	if err != nil {
 		return nil, err
 	}
