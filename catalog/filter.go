@@ -60,3 +60,9 @@ func (f *Filter) MatchVersion(version string) bool {
 func (f *Filter) FiltersVersions() bool {
 	return f.MinVersion != "" || f.AfterVersion != "" || f.BeforeVersion != "" || f.MaxVersion != ""
 }
+
+type GroupFilter struct {
+	Vendor  string
+	Product string
+	Name    string
+}

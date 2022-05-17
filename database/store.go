@@ -85,6 +85,52 @@ func (store *DbCatalogStore) LatestReleases(limit int) ([]*catalog.Release, erro
 	return transformReleases(releases)
 }
 
+func (store *DbCatalogStore) StoreGroup(
+	group *catalog.Group,
+	allowUpdate bool,
+) (*catalog.Group, error) {
+	g := FromCatalogGroup(group)
+
+	dbApp, err := store.GetApp(group.App.Vendor, group.App.Product)
+	if err != nil {
+		return nil, err
+	}
+
+	g.AppId = dbApp.Id
+
+	stmt := store.db.NewInsert().
+		Model(&g)
+
+	if allowUpdate {
+		stmt = stmt.
+			// All fields except the ones in the unique constraint (as well as ID and date)
+			On("CONFLICT ON CONSTRAINT groups_ux IGNORE")
+	}
+
+	if _, err := stmt.Exec(store.ctx); err != nil {
+		// Instead of returning an error, we just return the older release
+		// So the caller can determine the release was already there
+		if !strings.Contains(err.Error(), "violates unique constraint") {
+			return nil, err
+		}
+	}
+
+	stored := Group{}
+
+	err = store.db.NewSelect().
+		Model(&stored).
+		Where("app_id = ?", dbApp.Id).
+		Where("\"group\".\"name\" = ?", group.Name).
+		Relation("App").
+		Scan(store.ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return stored.ToCatalogGroup(), nil
+}
+
 func (store *DbCatalogStore) StoreRelease(
 	release *catalog.Release,
 	allowUpdate bool,
@@ -156,15 +202,50 @@ func (store *DbCatalogStore) GetApp(vendor string, product string) (*App, error)
 	return &app, nil
 }
 
+func (store *DbCatalogStore) ListGroups(filter catalog.GroupFilter, limit int) ([]*catalog.Group, error) {
+	// Reserve reasonable space
+	groups := make([]Group, 0, limit)
+
+	dbApp, err := store.GetApp(filter.Vendor, filter.Product)
+	if err != nil || dbApp == nil {
+		return []*catalog.Group{}, err
+	}
+
+	query := store.db.NewSelect().
+		Model(&groups).
+		Relation("App").
+		Where("app_id = ?", dbApp.Id)
+
+	if filter.Name != "" {
+		query = query.Where("name = ?", filter.Name)
+	}
+
+	err = query.
+		OrderExpr("\"name\" ASC").
+		Limit(limit).
+		Scan(store.ctx)
+
+	if err != nil {
+		return []*catalog.Group{}, err
+	}
+
+	return transformGroups(groups)
+}
+
 func (store *DbCatalogStore) FetchReleases(filter catalog.Filter) ([]*catalog.Release, error) {
 	// Reserve at least some reasonable space
 	releases := make([]Release, 0, 16)
 
-	err := filterQuery(
+	dbApp, err := store.GetApp(filter.Vendor, filter.Product)
+	if err != nil || dbApp == nil {
+		return []*catalog.Release{}, err
+	}
+
+	err = filterQuery(
 		store.db.NewSelect().
 			Model(&releases).
-			Where("vendor = ?", filter.Vendor).
-			Where("product = ?", filter.Product),
+			Relation("App").
+			Where("app_id = ?", dbApp.Id),
 		filter,
 	).
 		OrderExpr("id DESC").
