@@ -57,6 +57,7 @@ func (store *DbCatalogStore) ListApps(limit int) ([]*catalog.App, error) {
 
 	err := store.db.NewSelect().
 		Model(&apps).
+		Relation("DefaultGroups").
 		OrderExpr("id DESC").
 		Limit(limit).
 		Scan(store.ctx)

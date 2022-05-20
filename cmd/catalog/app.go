@@ -27,13 +27,14 @@ func (app *App) ListApps(limit int) error {
 		return nil
 	}
 
-	latest, err := dbStore.ListApps(limit)
+	apps, err := dbStore.ListApps(limit)
 	if err != nil {
 		return err
 	}
 
-	for _, release := range latest {
-		fmt.Printf("%s\n", release)
+	for _, a := range apps {
+		defaultGroups := catalog.FormatGroups(a.DefaultGroups)
+		fmt.Printf("%s, default groups: %s\n", a, defaultGroups[1:len(defaultGroups)-1])
 	}
 
 	return nil

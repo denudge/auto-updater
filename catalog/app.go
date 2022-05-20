@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -14,6 +15,7 @@ type App struct {
 	UpgradeTarget UpgradeTarget // If empty, the default upgrade target will be used
 	Created       time.Time
 	Updated       time.Time
+	DefaultGroups []string // empty means "public" by default
 }
 
 func (app *App) String() string {
@@ -22,4 +24,16 @@ func (app *App) String() string {
 	}
 
 	return fmt.Sprintf("%s %s", app.Vendor, app.Product)
+}
+
+func FormatGroups(groups []string) string {
+	str := "("
+	if len(groups) > 0 {
+		str += strings.Join(groups, ", ")
+	} else {
+		str += "public"
+	}
+	str += ")"
+
+	return str
 }

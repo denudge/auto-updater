@@ -49,11 +49,10 @@ func (r *Release) ToCatalogRelease() *catalog.Release {
 	}
 
 	// Transform groups to simple strings
-	groups := make([]string, len(r.Groups))
+	release.Groups = make([]string, len(r.Groups))
 	for i, group := range r.Groups {
-		groups[i] = group.Name
+		release.Groups[i] = group.Name
 	}
-	release.Groups = groups
 
 	return release
 }

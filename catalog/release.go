@@ -2,7 +2,6 @@ package catalog
 
 import (
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -53,20 +52,12 @@ func (r *Release) String() string {
 		version = fmt.Sprintf("%s [unstable]", version)
 	}
 
-	groups := " ("
-	if len(r.Groups) > 0 {
-		groups += strings.Join(r.Groups, ", ")
-	} else {
-		groups += "public"
-	}
-	groups += ")"
-
 	return fmt.Sprintf(
-		"%s%s, version %s, released on %s%s",
+		"%s%s, version %s, released on %s %s",
 		productName,
 		arch,
 		version,
 		r.Date.Format(time.RFC1123),
-		string(groups),
+		FormatGroups(r.Groups),
 	)
 }
