@@ -24,10 +24,11 @@ type Release struct {
 	UpgradeTarget string    `bun:"upgrade_target"` // If empty, the default upgrade target will be used
 	ShouldUpgrade int       `bun:"should_upgrade"`
 	UpdatedAt     time.Time `bun:"updated_at"`
+	Groups        []Group   `bun:"m2m:releases_groups,join:Release=Group"`
 }
 
 func (r *Release) ToCatalogRelease() *catalog.Release {
-	return &catalog.Release{
+	release := &catalog.Release{
 		App: &catalog.App{
 			Vendor:  r.App.Vendor,
 			Product: r.App.Product,
@@ -46,6 +47,15 @@ func (r *Release) ToCatalogRelease() *catalog.Release {
 		UpgradeTarget: catalog.UpgradeTarget(r.UpgradeTarget),
 		ShouldUpgrade: catalog.Criticality(r.ShouldUpgrade),
 	}
+
+	// Transform groups to simple strings
+	groups := make([]string, len(r.Groups))
+	for i, group := range r.Groups {
+		groups[i] = group.Name
+	}
+	release.Groups = groups
+
+	return release
 }
 
 func FromCatalogRelease(r *catalog.Release) Release {

@@ -74,6 +74,7 @@ func (store *DbCatalogStore) LatestReleases(limit int) ([]*catalog.Release, erro
 	err := store.db.NewSelect().
 		Model(&releases).
 		Relation("App").
+		Relation("Groups").
 		OrderExpr("id DESC").
 		Limit(limit).
 		Scan(store.ctx)
@@ -177,6 +178,8 @@ func (store *DbCatalogStore) StoreRelease(
 		Where("os = ?", release.OS).
 		Where("arch = ?", release.Arch).
 		Where("version = ?", release.Version).
+		Relation("App").
+		Relation("Groups").
 		Scan(store.ctx)
 
 	if err != nil {
@@ -245,6 +248,7 @@ func (store *DbCatalogStore) FetchReleases(filter catalog.Filter) ([]*catalog.Re
 		store.db.NewSelect().
 			Model(&releases).
 			Relation("App").
+			Relation("Groups").
 			Where("app_id = ?", dbApp.Id),
 		filter,
 	).

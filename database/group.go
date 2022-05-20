@@ -53,3 +53,14 @@ func transformGroups(groups []Group) ([]*catalog.Group, error) {
 
 	return out, nil
 }
+
+type ReleaseToGroup struct {
+	bun.BaseModel `bun:"table:releases_groups"`
+	Id            int64     `bun:"id,pk,autoincrement"`
+	ReleaseId     int64     `bun:"release_id"`
+	Release       *Release  `bun:"rel:belongs-to,join:release_id=id"`
+	GroupId       int64     `bun:"group_id"`
+	Group         *Group    `bun:"rel:belongs-to,join:group_id=id"`
+	CreatedAt     time.Time `bun:"created_at"`
+	UpdatedAt     time.Time `bun:"updated_at"`
+}

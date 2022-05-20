@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -19,6 +20,7 @@ type Release struct {
 	Tags          []string
 	UpgradeTarget UpgradeTarget // If empty, the default upgrade target will be used
 	ShouldUpgrade Criticality
+	Groups        []string
 }
 
 type ReleaseHistory struct {
@@ -51,5 +53,20 @@ func (r *Release) String() string {
 		version = fmt.Sprintf("%s [unstable]", version)
 	}
 
-	return fmt.Sprintf("%s%s, version %s, released on %s", productName, arch, version, r.Date.Format(time.RFC1123))
+	groups := " ("
+	if len(r.Groups) > 0 {
+		groups += strings.Join(r.Groups, ", ")
+	} else {
+		groups += "public"
+	}
+	groups += ")"
+
+	return fmt.Sprintf(
+		"%s%s, version %s, released on %s%s",
+		productName,
+		arch,
+		version,
+		r.Date.Format(time.RFC1123),
+		string(groups),
+	)
 }
