@@ -17,7 +17,6 @@ func Connect(dsn string) *bun.DB {
 	debug := bundebug.NewQueryHook(
 		// disable the hook
 		bundebug.WithEnabled(false),
-
 		bundebug.WithVerbose(true),
 
 		// BUNDEBUG=1 logs failed queries
