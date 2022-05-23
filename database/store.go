@@ -6,6 +6,7 @@ import (
 	"github.com/denudge/auto-updater/catalog"
 	"github.com/uptrace/bun"
 	"strings"
+	"time"
 )
 
 type DbCatalogStore struct {
@@ -65,19 +66,9 @@ func (store *DbCatalogStore) SetAppDefaultGroups(app *catalog.App) (*catalog.App
 }
 
 func (store *DbCatalogStore) setAppDefaultGroups(app *App, groups []string) (*App, error) {
-	groupMap, err := store.getGroupMap(app.Id)
+	_, err := store.checkAndGetGroups(app, groups)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, group := range groups {
-		if group == "public" {
-			continue
-		}
-
-		if _, ok := groupMap[group]; !ok {
-			return nil, fmt.Errorf("unknown group \"%s\"", group)
-		}
 	}
 
 	// Deactivate all previous default groups
@@ -234,12 +225,24 @@ func (store *DbCatalogStore) StoreRelease(
 ) (*catalog.Release, error) {
 	r := FromCatalogRelease(release)
 
-	dbApp, err := store.getApp(release.App.Vendor, release.App.Product, false)
+	dbApp, err := store.getApp(release.App.Vendor, release.App.Product, true)
 	if err != nil {
 		return nil, err
 	}
 
 	r.AppId = dbApp.Id
+
+	// Check groups before inserting any release
+	groups := make([]Group, 0)
+	if release.Groups == nil || len(release.Groups) < 1 {
+		// Connect default groups
+		groups = dbApp.GetDefaultGroups()
+	} else {
+		groups, err = store.checkAndGetGroups(dbApp, release.Groups)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	stmt := store.db.NewInsert().
 		Model(&r)
@@ -257,12 +260,15 @@ func (store *DbCatalogStore) StoreRelease(
 			Set("should_upgrade = EXCLUDED.should_upgrade")
 	}
 
+	linkGroups := false
 	if _, err := stmt.Exec(store.ctx); err != nil {
 		// Instead of returning an error, we just return the older release
 		// So the caller can determine the release was already there
 		if !strings.Contains(err.Error(), "violates unique constraint") {
 			return nil, err
 		}
+	} else if dbApp.Groups != nil && len(dbApp.Groups) > 0 {
+		linkGroups = true
 	}
 
 	stored := Release{}
@@ -282,7 +288,63 @@ func (store *DbCatalogStore) StoreRelease(
 		return nil, err
 	}
 
+	if linkGroups {
+		for _, group := range groups {
+			groupRelation := ReleaseToGroup{
+				GroupId:   group.Id,
+				ReleaseId: stored.Id,
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}
+
+			if _, err = store.db.NewInsert().
+				Model(&groupRelation).
+				Exec(store.ctx); err != nil {
+				return nil, err
+			}
+		}
+
+		err = store.db.NewSelect().
+			Model(&stored).
+			Where("app_id = ?", dbApp.Id).
+			Where("release.id = ?", stored.Id).
+			Relation("App").
+			Relation("Groups").
+			Scan(store.ctx)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return stored.ToCatalogRelease(), nil
+}
+
+func (store *DbCatalogStore) checkAndGetGroups(app *App, groupNames []string) ([]Group, error) {
+	if groupNames == nil || len(groupNames) < 1 {
+		return []Group{}, nil
+	}
+
+	groups := make([]Group, 0, len(groupNames))
+	groupMap, err := store.getGroupMap(app.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, group := range groupNames {
+		if group == "public" {
+			continue
+		}
+
+		groupObj, ok := groupMap[group]
+		if !ok {
+			return nil, fmt.Errorf("unknown group \"%s\"", group)
+		}
+
+		groups = append(groups, groupObj)
+	}
+
+	return groups, nil
 }
 
 func (store *DbCatalogStore) getApp(vendor string, product string, withGroups bool) (*App, error) {

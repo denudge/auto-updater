@@ -46,6 +46,21 @@ func (app *App) ToCatalogApp() *catalog.App {
 	return a
 }
 
+func (app *App) GetDefaultGroups() []Group {
+	if app.Groups == nil || len(app.Groups) < 1 {
+		return []Group{}
+	}
+
+	defaultGroups := make([]Group, 0, len(app.Groups))
+	for _, group := range app.Groups {
+		if group.Default {
+			defaultGroups = append(defaultGroups, group)
+		}
+	}
+
+	return defaultGroups
+}
+
 func FromCatalogApp(app *catalog.App) App {
 	return App{
 		Vendor:        app.Vendor,
