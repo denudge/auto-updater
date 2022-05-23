@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"github.com/denudge/auto-updater/catalog"
 	"github.com/uptrace/bun"
 	"strings"
@@ -19,7 +20,7 @@ func NewDbCatalogStore(db *bun.DB, ctx context.Context) *DbCatalogStore {
 	}
 }
 
-func (store *DbCatalogStore) CreateApp(app *catalog.App, allowUpdate bool) (*catalog.App, error) {
+func (store *DbCatalogStore) StoreApp(app *catalog.App, allowUpdate bool) (*catalog.App, error) {
 	a := FromCatalogApp(app)
 
 	stmt := store.db.NewInsert().
@@ -43,8 +44,94 @@ func (store *DbCatalogStore) CreateApp(app *catalog.App, allowUpdate bool) (*cat
 	return store.FindApp(app.Vendor, app.Product)
 }
 
+func (store *DbCatalogStore) SetAppDefaultGroups(app *catalog.App) (*catalog.App, error) {
+	// Now make sure we have the right default groups
+	dbApp, err := store.getApp(app.Vendor, app.Product, false)
+	if err != nil {
+		return nil, err
+	}
+
+	groupNames := make([]string, 0)
+	if app.DefaultGroups != nil && len(app.DefaultGroups) > 0 {
+		groupNames = app.DefaultGroups
+	}
+
+	dbApp, err = store.setAppDefaultGroups(dbApp, groupNames)
+	if err != nil {
+		return nil, err
+	}
+
+	return dbApp.ToCatalogApp(), nil
+}
+
+func (store *DbCatalogStore) setAppDefaultGroups(app *App, groups []string) (*App, error) {
+	groupMap, err := store.getGroupMap(app.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, group := range groups {
+		if group == "public" {
+			continue
+		}
+
+		if _, ok := groupMap[group]; !ok {
+			return nil, fmt.Errorf("unknown group \"%s\"", group)
+		}
+	}
+
+	// Deactivate all previous default groups
+	_, err = store.db.NewUpdate().
+		Model(&Group{}).
+		Where("app_id = ?", app.Id).
+		Set("\"default\" = false").
+		Exec(store.ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Set new default groups
+	_, err = store.db.NewUpdate().
+		Model(&Group{}).
+		Where("app_id = ?", app.Id).
+		Where("\"name\" IN (?)", bun.In(groups)).
+		Set("\"default\" = true").
+		Exec(store.ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return store.getApp(app.Vendor, app.Product, true)
+}
+
+func (store *DbCatalogStore) getGroupMap(appId int64) (map[string]Group, error) {
+	groups := make([]Group, 0, 4)
+
+	err := store.db.NewSelect().
+		Model(&groups).
+		Where("app_id = ?", appId).
+		OrderExpr("id DESC").
+		Scan(store.ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	groupMap := make(map[string]Group)
+	for _, group := range groups {
+		if err != nil {
+			return nil, fmt.Errorf("cannot find group \"%s\"", group)
+		}
+		groupMap[group.Name] = group
+	}
+
+	return groupMap, nil
+}
+
 func (store *DbCatalogStore) FindApp(vendor string, product string) (*catalog.App, error) {
-	dbApp, err := store.GetApp(vendor, product)
+	dbApp, err := store.getApp(vendor, product, true)
 	if err != nil {
 		return nil, err
 	}
@@ -55,12 +142,16 @@ func (store *DbCatalogStore) FindApp(vendor string, product string) (*catalog.Ap
 func (store *DbCatalogStore) ListApps(limit int) ([]*catalog.App, error) {
 	apps := make([]App, 0, limit)
 
-	err := store.db.NewSelect().
+	query := store.db.NewSelect().
 		Model(&apps).
-		Relation("DefaultGroups").
-		OrderExpr("id DESC").
-		Limit(limit).
-		Scan(store.ctx)
+		Relation("Groups").
+		OrderExpr("id DESC")
+
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+
+	err := query.Scan(store.ctx)
 
 	if err != nil {
 		return []*catalog.App{}, err
@@ -72,13 +163,17 @@ func (store *DbCatalogStore) ListApps(limit int) ([]*catalog.App, error) {
 func (store *DbCatalogStore) LatestReleases(limit int) ([]*catalog.Release, error) {
 	releases := make([]Release, 0, limit)
 
-	err := store.db.NewSelect().
+	query := store.db.NewSelect().
 		Model(&releases).
 		Relation("App").
 		Relation("Groups").
-		OrderExpr("id DESC").
-		Limit(limit).
-		Scan(store.ctx)
+		OrderExpr("id DESC")
+
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+
+	err := query.Scan(store.ctx)
 
 	if err != nil {
 		return []*catalog.Release{}, err
@@ -93,7 +188,7 @@ func (store *DbCatalogStore) StoreGroup(
 ) (*catalog.Group, error) {
 	g := FromCatalogGroup(group)
 
-	dbApp, err := store.GetApp(group.App.Vendor, group.App.Product)
+	dbApp, err := store.getApp(group.App.Vendor, group.App.Product, false)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +234,7 @@ func (store *DbCatalogStore) StoreRelease(
 ) (*catalog.Release, error) {
 	r := FromCatalogRelease(release)
 
-	dbApp, err := store.GetApp(release.App.Vendor, release.App.Product)
+	dbApp, err := store.getApp(release.App.Vendor, release.App.Product, false)
 	if err != nil {
 		return nil, err
 	}
@@ -190,13 +285,19 @@ func (store *DbCatalogStore) StoreRelease(
 	return stored.ToCatalogRelease(), nil
 }
 
-func (store *DbCatalogStore) GetApp(vendor string, product string) (*App, error) {
+func (store *DbCatalogStore) getApp(vendor string, product string, withGroups bool) (*App, error) {
 	app := App{}
 
-	err := store.db.NewSelect().
+	query := store.db.NewSelect().
 		Model(&app).
 		Where("vendor = ?", vendor).
-		Where("product = ?", product).
+		Where("product = ?", product)
+
+	if withGroups {
+		query.Relation("Groups")
+	}
+
+	err := query.
 		Scan(store.ctx)
 
 	if err != nil {
@@ -206,11 +307,29 @@ func (store *DbCatalogStore) GetApp(vendor string, product string) (*App, error)
 	return &app, nil
 }
 
+func (store *DbCatalogStore) getGroup(appId int64, name string) (*Group, error) {
+	group := Group{}
+
+	fmt.Printf("Searching for group %s\n", name)
+
+	err := store.db.NewSelect().
+		Model(&group).
+		Where("app_id = ?", appId).
+		Where("name = ?", name).
+		Scan(store.ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &group, nil
+}
+
 func (store *DbCatalogStore) ListGroups(filter catalog.GroupFilter, limit int) ([]*catalog.Group, error) {
 	// Reserve reasonable space
 	groups := make([]Group, 0, limit)
 
-	dbApp, err := store.GetApp(filter.Vendor, filter.Product)
+	dbApp, err := store.getApp(filter.Vendor, filter.Product, false)
 	if err != nil || dbApp == nil {
 		return []*catalog.Group{}, err
 	}
@@ -224,10 +343,14 @@ func (store *DbCatalogStore) ListGroups(filter catalog.GroupFilter, limit int) (
 		query = query.Where("name = ?", filter.Name)
 	}
 
-	err = query.
-		OrderExpr("\"name\" ASC").
-		Limit(limit).
-		Scan(store.ctx)
+	query = query.
+		OrderExpr("\"name\" ASC")
+
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+
+	err = query.Scan(store.ctx)
 
 	if err != nil {
 		return []*catalog.Group{}, err
@@ -240,7 +363,7 @@ func (store *DbCatalogStore) FetchReleases(filter catalog.Filter) ([]*catalog.Re
 	// Reserve at least some reasonable space
 	releases := make([]Release, 0, 16)
 
-	dbApp, err := store.GetApp(filter.Vendor, filter.Product)
+	dbApp, err := store.getApp(filter.Vendor, filter.Product, false)
 	if err != nil || dbApp == nil {
 		return []*catalog.Release{}, err
 	}

@@ -17,7 +17,7 @@ type App struct {
 	UpgradeTarget string    `bun:"upgrade_target"` // If empty, the default upgrade target will be used
 	CreatedAt     time.Time `bun:"created_at"`
 	UpdatedAt     time.Time `bun:"updated_at"`
-	DefaultGroups []Group   `bun:"m2m:apps_default_groups,join:App=Group"`
+	Groups        []Group   `bun:"rel:has-many,join:id=app_id"`
 }
 
 func (app *App) ToCatalogApp() *catalog.App {
@@ -32,9 +32,15 @@ func (app *App) ToCatalogApp() *catalog.App {
 		Updated:       app.UpdatedAt,
 	}
 
-	a.DefaultGroups = make([]string, len(app.DefaultGroups))
-	for i, group := range app.DefaultGroups {
-		a.DefaultGroups[i] = group.Name
+	if app.Groups != nil {
+		a.Groups = make([]string, len(app.Groups))
+		a.DefaultGroups = make([]string, 0, len(app.Groups))
+		for i, group := range app.Groups {
+			a.Groups[i] = group.Name
+			if group.Default {
+				a.DefaultGroups = append(a.DefaultGroups, group.Name)
+			}
+		}
 	}
 
 	return a
@@ -65,15 +71,4 @@ func transformApps(apps []App) ([]*catalog.App, error) {
 	}
 
 	return out, nil
-}
-
-type AppDefaultGroup struct {
-	bun.BaseModel `bun:"table:apps_default_groups"`
-	Id            int64     `bun:"id,pk,autoincrement"`
-	AppId         int64     `bun:"app_id"`
-	App           *App      `bun:"rel:belongs-to,join:app_id=id"`
-	GroupId       int64     `bun:"group_id"`
-	Group         *Group    `bun:"rel:belongs-to,join:group_id=id"`
-	CreatedAt     time.Time `bun:"created_at"`
-	UpdatedAt     time.Time `bun:"updated_at"`
 }

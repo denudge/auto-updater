@@ -1,0 +1,1 @@
+ALTER TABLE groups ADD COLUMN "default" boolean NOT NULL DEFAULT false;

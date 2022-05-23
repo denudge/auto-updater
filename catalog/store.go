@@ -3,8 +3,9 @@ package catalog
 type StoreInterface interface {
 	// App management
 	ListApps(limit int) ([]*App, error)
-	CreateApp(app *App, allowUpdate bool) (*App, error)
+	StoreApp(app *App, allowUpdate bool) (*App, error)
 	FindApp(vendor string, product string) (*App, error)
+	SetAppDefaultGroups(app *App) (*App, error)
 
 	// Group management
 	ListGroups(filter GroupFilter, limit int) ([]*Group, error)

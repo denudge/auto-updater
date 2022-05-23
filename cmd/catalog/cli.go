@@ -31,48 +31,6 @@ func NewCli(app *App, api *Api) *cli.App {
 	}
 }
 
-func (app *App) createAppCommands() *cli.Command {
-	return &cli.Command{
-		Name:  "app",
-		Usage: "app management",
-		Subcommands: []*cli.Command{
-			{
-				Name:  "create",
-				Usage: "create a new app",
-				Flags: createAppFlags(),
-				Before: func(c *cli.Context) error {
-					return checkAppArguments(c, "create", "")
-				},
-				Action: func(c *cli.Context) error {
-					a := parseAppFlags(c)
-
-					stored, err := app.store.CreateApp(a, false)
-					if err != nil {
-						return err
-					}
-
-					// time.Time.Before() cannot be used because the database might drop fractional seconds
-					if stored.Created.Unix() < a.Created.Unix() {
-						fmt.Println("App has already been there.")
-					}
-
-					return nil
-				},
-			},
-			{
-				Name:  "list",
-				Usage: "list apps",
-				Flags: append(createAppFlags(), createLimitFlag()[0]),
-				Action: func(c *cli.Context) error {
-
-					limit := parseLimitFlag(c, 10)
-					return app.ListApps(limit)
-				},
-			},
-		},
-	}
-}
-
 func (app *App) createGroupCommands() *cli.Command {
 	return &cli.Command{
 		Name:  "group",
@@ -83,7 +41,7 @@ func (app *App) createGroupCommands() *cli.Command {
 				Usage: "create a new group",
 				Flags: createGroupFlags(),
 				Before: func(c *cli.Context) error {
-					return checkAppArguments(c, "create", "name")
+					return checkArguments(c, "create", []string{"vendor", "product", "name"})
 				},
 				Action: func(c *cli.Context) error {
 					g := parseGroupFlags(c)
@@ -107,31 +65,38 @@ func (app *App) createGroupCommands() *cli.Command {
 				Usage: "list groups",
 				Flags: append(createGroupFlags(), createLimitFlag()[0]),
 				Before: func(c *cli.Context) error {
-					return checkAppArguments(c, "list", "")
+					return checkArguments(c, "list", []string{"vendor", "product"})
 				},
 				Action: func(c *cli.Context) error {
 					g := parseGroupFlags(c)
 
-					limit := parseLimitFlag(c, 10)
-					filter := catalog.GroupFilter{
-						Vendor:  g.App.Vendor,
-						Product: g.App.Product,
-						Name:    g.Name,
-					}
-					groups, err := app.store.ListGroups(filter, limit)
-					if err != nil {
-						return err
-					}
+					limit := parseLimitFlag(c, 0)
 
-					for _, group := range groups {
-						fmt.Printf("%s\n", group.Name)
-					}
-
-					return nil
+					return app.listAppGroups(g.App.Vendor, g.App.Product, g.Name, limit)
 				},
 			},
 		},
 	}
+}
+
+func (app *App) listAppGroups(vendor string, product string, name string, limit int) error {
+
+	filter := catalog.GroupFilter{
+		Vendor:  vendor,
+		Product: product,
+		Name:    name,
+	}
+
+	groups, err := app.store.ListGroups(filter, limit)
+	if err != nil {
+		return err
+	}
+
+	for _, group := range groups {
+		fmt.Printf("%s\n", group.Name)
+	}
+
+	return nil
 }
 
 func (app *App) createReleaseCommands() *cli.Command {
@@ -144,7 +109,7 @@ func (app *App) createReleaseCommands() *cli.Command {
 				Usage: "list recently published releases",
 				Flags: append(createFilterFlags(), createLimitFlag()[0]),
 				Before: func(c *cli.Context) error {
-					return checkAppArguments(c, "latest", "")
+					return checkArguments(c, "latest", []string{"vendor", "product"})
 				},
 				Action: func(c *cli.Context) error {
 					limit := parseLimitFlag(c, 10)
@@ -156,7 +121,7 @@ func (app *App) createReleaseCommands() *cli.Command {
 				Usage: "list specific releases",
 				Flags: append(createFilterFlags(), createLimitFlag()[0]),
 				Before: func(c *cli.Context) error {
-					return checkAppArguments(c, "list", "")
+					return checkArguments(c, "list", []string{"vendor", "product"})
 				},
 				Action: func(c *cli.Context) error {
 					filter := parseFilterFlags(c)
@@ -177,14 +142,7 @@ func (app *App) createReleaseCommands() *cli.Command {
 				Usage: "publish new release",
 				Flags: createReleaseFlags(),
 				Before: func(c *cli.Context) error {
-					// Check arguments
-					if c.String("vendor") == "" || c.String("product") == "" || c.String("version") == "" {
-						_ = cli.ShowCommandHelp(c, "publish")
-
-						return fmt.Errorf("At least vendor, product and version must be specified.\n")
-					}
-
-					return nil
+					return checkArguments(c, "publish", []string{"vendor", "product", "version"})
 				},
 				Action: func(c *cli.Context) error {
 					release := parseReleaseFlags(c)
@@ -214,7 +172,7 @@ func (app *App) createReleaseCommands() *cli.Command {
 				Usage: "Set the upgrade target",
 				Flags: append(createFilterFlags(), &cli.StringFlag{Name: "upgrade-target", Usage: "The desired upgrade target"}),
 				Before: func(c *cli.Context) error {
-					err := checkAppArguments(c, "set-upgrade-target", "upgrade-target")
+					err := checkArguments(c, "set-upgrade-target", []string{"vendor", "product", "upgrade-target"})
 					if err != nil {
 						return err
 					}
@@ -252,17 +210,6 @@ func parseLimitFlag(c *cli.Context, defaultValue int) int {
 	return c.Int("limit")
 }
 
-func createAppFlags() []cli.Flag {
-	return []cli.Flag{
-		&cli.StringFlag{Name: "vendor", Usage: "Vendor name"},
-		&cli.StringFlag{Name: "product", Usage: "Product name"},
-		&cli.StringFlag{Name: "name", Usage: "Product name (for printing)"},
-		&cli.BoolFlag{Name: "active", Usage: ""},
-		&cli.BoolFlag{Name: "locked", Usage: ""},
-		&cli.StringFlag{Name: "upgrade-target", Usage: "Optional: upgrade target for the app"},
-	}
-}
-
 func createGroupFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{Name: "vendor", Usage: "Vendor name"},
@@ -279,6 +226,9 @@ func parseAppFlags(c *cli.Context) *catalog.App {
 		Active:        c.Bool("active"),
 		Locked:        c.Bool("locked"),
 		UpgradeTarget: catalog.UpgradeTarget(c.String("upgrade-target")),
+		DefaultGroups: c.StringSlice("default-group"),
+		Created:       time.Now(),
+		Updated:       time.Now(),
 	}
 }
 
@@ -288,7 +238,9 @@ func parseGroupFlags(c *cli.Context) *catalog.Group {
 			Vendor:  c.String("vendor"),
 			Product: c.String("product"),
 		},
-		Name: c.String("name"),
+		Name:    c.String("name"),
+		Created: time.Now(),
+		Updated: time.Now(),
 	}
 }
 
@@ -365,19 +317,32 @@ func parseFilterFlags(c *cli.Context) catalog.Filter {
 	return filter
 }
 
-func checkAppArguments(c *cli.Context, command string, additionalField string) error {
-	// Check arguments
-	if c.String("vendor") == "" || c.String("product") == "" ||
-		(additionalField != "" && c.String(additionalField) == "") {
-		_ = cli.ShowCommandHelp(c, command)
-
-		requiredFields := "vendor and product"
-		if additionalField != "" {
-			requiredFields = "vendor, product and " + additionalField
+func checkArguments(c *cli.Context, command string, fields []string) error {
+	for _, field := range fields {
+		if c.String(field) == "" {
+			_ = cli.ShowCommandHelp(c, command)
+			requiredFields := formatRequiredFields(fields)
+			return fmt.Errorf("Missing argument \"%s\". At least %s must be specified.\n", field, requiredFields)
 		}
-
-		return fmt.Errorf("At least %s must be specified.\n", requiredFields)
 	}
 
 	return nil
+}
+
+func formatRequiredFields(fields []string) string {
+	if len(fields) < 1 {
+		return ""
+	}
+
+	requiredFields := fields[0]
+
+	for i := 1; i < len(fields); i++ {
+		if i < len(fields)-1 {
+			requiredFields += ", " + fields[i]
+		} else {
+			requiredFields += " and " + fields[i]
+		}
+	}
+
+	return requiredFields
 }

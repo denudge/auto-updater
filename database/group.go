@@ -12,6 +12,7 @@ type Group struct {
 	AppId         int64     `bun:"app_id"`
 	App           *App      `bun:"rel:belongs-to,join:app_id=id"`
 	Name          string    `bun:"name"`
+	Default       bool      `bun:"default"`
 	CreatedAt     time.Time `bun:"created_at"`
 	UpdatedAt     time.Time `bun:"updated_at"`
 }

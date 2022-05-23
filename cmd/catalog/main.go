@@ -21,7 +21,23 @@ func main() {
 	// Create CLI
 	cmd := NewCli(app, api)
 
-	if err := cmd.Run(os.Args); err != nil {
+	args := os.Args
+
+	/*
+		args := []string{
+			"bin/catalog",
+			"app",
+			"set-default-groups",
+			"--vendor",
+			"Foo",
+			"--product",
+			"Bar",
+			"--default-group",
+			"Betatester",
+		}
+	*/
+
+	if err := cmd.Run(args); err != nil {
 		log.Fatal(err)
 	}
 }

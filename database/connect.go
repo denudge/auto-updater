@@ -42,5 +42,4 @@ func registerRelations(db *bun.DB) {
 	// Register many to many model so bun can better recognize m2m relation.
 	// This should be done before you use the models for the first time.
 	db.RegisterModel((*ReleaseToGroup)(nil))
-	db.RegisterModel((*AppDefaultGroup)(nil))
 }

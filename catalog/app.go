@@ -15,6 +15,7 @@ type App struct {
 	UpgradeTarget UpgradeTarget // If empty, the default upgrade target will be used
 	Created       time.Time
 	Updated       time.Time
+	Groups        []string
 	DefaultGroups []string // empty means "public" by default
 }
 

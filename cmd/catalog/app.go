@@ -20,26 +20,6 @@ func NewApp(db *bun.DB, ctx context.Context) *App {
 	}
 }
 
-func (app *App) ListApps(limit int) error {
-	dbStore, ok := app.store.(*database.DbCatalogStore)
-	if !ok {
-		fmt.Printf("Cannot print apps")
-		return nil
-	}
-
-	apps, err := dbStore.ListApps(limit)
-	if err != nil {
-		return err
-	}
-
-	for _, a := range apps {
-		defaultGroups := catalog.FormatGroups(a.DefaultGroups)
-		fmt.Printf("%s, default groups: %s\n", a, defaultGroups[1:len(defaultGroups)-1])
-	}
-
-	return nil
-}
-
 func (app *App) ListLatestReleases(limit int) error {
 	dbStore, ok := app.store.(*database.DbCatalogStore)
 	if !ok {
