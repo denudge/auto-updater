@@ -218,20 +218,6 @@ func createGroupFlags() []cli.Flag {
 	}
 }
 
-func parseAppFlags(c *cli.Context) *catalog.App {
-	return &catalog.App{
-		Vendor:        c.String("vendor"),
-		Product:       c.String("product"),
-		Name:          c.String("name"),
-		Active:        c.Bool("active"),
-		Locked:        c.Bool("locked"),
-		UpgradeTarget: catalog.UpgradeTarget(c.String("upgrade-target")),
-		DefaultGroups: c.StringSlice("default-group"),
-		Created:       time.Now(),
-		Updated:       time.Now(),
-	}
-}
-
 func parseGroupFlags(c *cli.Context) *catalog.Group {
 	return &catalog.Group{
 		App: &catalog.App{

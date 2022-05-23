@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/denudge/auto-updater/catalog"
 	"github.com/urfave/cli/v2"
+	"time"
 )
 
 func (app *App) createAppCommands() *cli.Command {
@@ -83,6 +84,20 @@ func createAppFlags() []cli.Flag {
 		&cli.BoolFlag{Name: "active", Usage: ""},
 		&cli.BoolFlag{Name: "locked", Usage: ""},
 		&cli.StringFlag{Name: "upgrade-target", Usage: "Optional: upgrade target for the app"},
+	}
+}
+
+func parseAppFlags(c *cli.Context) *catalog.App {
+	return &catalog.App{
+		Vendor:        c.String("vendor"),
+		Product:       c.String("product"),
+		Name:          c.String("name"),
+		Active:        c.Bool("active"),
+		Locked:        c.Bool("locked"),
+		UpgradeTarget: catalog.UpgradeTarget(c.String("upgrade-target")),
+		DefaultGroups: c.StringSlice("default-group"),
+		Created:       time.Now(),
+		Updated:       time.Now(),
 	}
 }
 
