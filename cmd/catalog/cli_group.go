@@ -77,8 +77,8 @@ func (app *App) listAppGroups(vendor string, product string, name string, limit 
 
 func createGroupFlags() []cli.Flag {
 	return []cli.Flag{
-		&cli.StringFlag{Name: "vendor", Usage: "Vendor name"},
-		&cli.StringFlag{Name: "product", Usage: "Product name"},
+		&cli.StringFlag{Name: "vendor", Usage: "Vendor name", Required: true},
+		&cli.StringFlag{Name: "product", Usage: "Product name", Required: true},
 		&cli.StringFlag{Name: "name", Usage: "Group name"},
 	}
 }

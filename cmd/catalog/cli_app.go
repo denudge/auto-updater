@@ -78,8 +78,8 @@ func (app *App) createAppCommands() *cli.Command {
 
 func createAppFlags() []cli.Flag {
 	return []cli.Flag{
-		&cli.StringFlag{Name: "vendor", Usage: "Vendor name"},
-		&cli.StringFlag{Name: "product", Usage: "Product name"},
+		&cli.StringFlag{Name: "vendor", Usage: "Vendor name", Required: true},
+		&cli.StringFlag{Name: "product", Usage: "Product name", Required: true},
 		&cli.StringFlag{Name: "name", Usage: "Product name (for printing)"},
 		&cli.BoolFlag{Name: "active", Usage: ""},
 		&cli.BoolFlag{Name: "locked", Usage: ""},

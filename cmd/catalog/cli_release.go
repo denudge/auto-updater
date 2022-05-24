@@ -122,6 +122,29 @@ func (app *App) createReleaseCommands() *cli.Command {
 					return nil
 				},
 			},
+			{
+				Name:  "set-groups",
+				Usage: "Bind releases to a new set of groups or make it public",
+				Flags: func() []cli.Flag {
+					flags := createReleaseFilterFlags()
+					return append(flags[:len(flags)-1], &cli.StringSliceFlag{Name: "group", Usage: "Group(s). Use a single \"public\" group to specify the public group.", Required: true})
+				}(),
+				Before: func(c *cli.Context) error {
+					err := checkArguments(c, "set-groups", []string{"vendor", "product"})
+					if err != nil {
+						return err
+					}
+
+					return checkGroupsInput(c.StringSlice("group"))
+				},
+				Action: func(c *cli.Context) error {
+					groups := c.StringSlice("group")
+
+					fmt.Printf("Setting the groups to %v\n", groups)
+
+					return nil
+				},
+			},
 		},
 	}
 }

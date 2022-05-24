@@ -8,7 +8,7 @@ func checkGroupsInput(strs []string) error {
 	hasPublic := false
 	hasOther := false
 
-	if len(strs) < 1 {
+	if strs == nil || len(strs) < 1 {
 		return errors.New("no groups given")
 	}
 
