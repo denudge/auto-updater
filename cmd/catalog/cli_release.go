@@ -15,7 +15,7 @@ func (app *App) createReleaseCommands() *cli.Command {
 			{
 				Name:  "latest",
 				Usage: "list recently published releases",
-				Flags: append(createReleaseFilterFlags(), createLimitFlag()[0]),
+				Flags: append(createReleaseFilterFlags(), createLimitFlag(10)[0]),
 				Before: func(c *cli.Context) error {
 					return checkArguments(c, "latest", []string{"vendor", "product"})
 				},
@@ -27,13 +27,24 @@ func (app *App) createReleaseCommands() *cli.Command {
 			{
 				Name:  "list",
 				Usage: "list specific releases",
-				Flags: append(createReleaseFilterFlags(), createLimitFlag()[0]),
+				Flags: append(createReleaseFilterFlags(), createLimitFlag(0)[0]),
 				Before: func(c *cli.Context) error {
-					return checkArguments(c, "list", []string{"vendor", "product"})
+					err := checkArguments(c, "list", []string{"vendor", "product"})
+					if err != nil {
+						return err
+					}
+
+					groups := c.StringSlice("group")
+					if groups != nil && len(groups) > 0 {
+						return checkGroupsInput(groups)
+					}
+
+					return nil
 				},
 				Action: func(c *cli.Context) error {
+					limit := parseLimitFlag(c, 0)
 					filter := parseReleaseFilterFlags(c)
-					releases, err := app.store.FetchReleases(filter)
+					releases, err := app.store.FetchReleases(filter, limit)
 					if err != nil {
 						return err
 					}
@@ -166,7 +177,7 @@ func createReleaseFilterFlags() []cli.Flag {
 		&cli.StringFlag{Name: "arch", Usage: "Architecture (i686, ppc64, ...)"},
 		&cli.StringFlag{Name: "alias", Usage: "Alias name for the release"},
 		&cli.BoolFlag{Name: "with-unstable", Usage: "Include unstable releases"},
-		&cli.StringSliceFlag{Name: "group", Usage: "Group(s). Use none to use the \"public\" group."},
+		&cli.StringSliceFlag{Name: "group", Usage: "Optional: Group(s). Use a single \"public\" group to specify the public group."},
 	}
 }
 
@@ -184,6 +195,7 @@ func parseReleaseFilterFlags(c *cli.Context) catalog.Filter {
 		Name:          c.String("name"),
 		Alias:         c.String("alias"),
 		WithUnstable:  c.Bool("with-unstable"),
+		Groups:        c.StringSlice("group"),
 	}
 
 	filter.CompleteVersions()

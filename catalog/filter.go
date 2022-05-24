@@ -15,6 +15,7 @@ type Filter struct {
 	AfterVersion  string // like a "MinVersion" but excluding this version
 	BeforeVersion string // like a "MaxVersion" but excluding this version
 	WithUnstable  bool
+	Groups        []string
 }
 
 func (f *Filter) CompleteVersions() {

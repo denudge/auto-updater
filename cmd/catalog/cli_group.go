@@ -39,7 +39,7 @@ func (app *App) createGroupCommands() *cli.Command {
 			{
 				Name:  "list",
 				Usage: "list groups",
-				Flags: append(createGroupFlags(), createLimitFlag()[0]),
+				Flags: append(createGroupFlags(), createLimitFlag(0)[0]),
 				Before: func(c *cli.Context) error {
 					return checkArguments(c, "list", []string{"vendor", "product"})
 				},

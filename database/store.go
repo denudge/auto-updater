@@ -66,7 +66,7 @@ func (store *DbCatalogStore) SetAppDefaultGroups(app *catalog.App) (*catalog.App
 }
 
 func (store *DbCatalogStore) setAppDefaultGroups(app *App, groups []string) (*App, error) {
-	_, err := store.checkAndGetGroups(app, groups)
+	_, err := store.getGroups(app, groups)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (store *DbCatalogStore) StoreRelease(
 		// Connect default groups
 		groups = dbApp.GetDefaultGroups()
 	} else {
-		groups, err = store.checkAndGetGroups(dbApp, release.Groups)
+		groups, err = store.getGroups(dbApp, release.Groups)
 		if err != nil {
 			return nil, err
 		}
@@ -320,7 +320,7 @@ func (store *DbCatalogStore) StoreRelease(
 	return stored.ToCatalogRelease(), nil
 }
 
-func (store *DbCatalogStore) checkAndGetGroups(app *App, groupNames []string) ([]Group, error) {
+func (store *DbCatalogStore) getGroups(app *App, groupNames []string) ([]Group, error) {
 	if groupNames == nil || len(groupNames) < 1 {
 		return []Group{}, nil
 	}
@@ -363,6 +363,10 @@ func (store *DbCatalogStore) getApp(vendor string, product string, withGroups bo
 		Scan(store.ctx)
 
 	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return nil, fmt.Errorf("unknown app \"%s %s\"", vendor, product)
+		}
+
 		return nil, err
 	}
 
@@ -421,24 +425,33 @@ func (store *DbCatalogStore) ListGroups(filter catalog.GroupFilter, limit int) (
 	return transformGroups(groups)
 }
 
-func (store *DbCatalogStore) FetchReleases(filter catalog.Filter) ([]*catalog.Release, error) {
-	// Reserve at least some reasonable space
-	releases := make([]Release, 0, 16)
-
+func (store *DbCatalogStore) FetchReleases(filter catalog.Filter, limit int) ([]*catalog.Release, error) {
 	dbApp, err := store.getApp(filter.Vendor, filter.Product, false)
 	if err != nil || dbApp == nil {
 		return []*catalog.Release{}, err
 	}
 
-	err = filterQuery(
-		store.db.NewSelect().
-			Model(&releases).
-			Relation("App").
-			Relation("Groups").
-			Where("app_id = ?", dbApp.Id),
-		filter,
-	).
-		OrderExpr("id DESC").
+	// Reserve at least some reasonable space
+	releases := make([]Release, 0, 16)
+
+	query := store.db.NewSelect().
+		Model(&releases).
+		Relation("App").
+		Relation("Groups").
+		Where("release.app_id = ?", dbApp.Id)
+
+	query, err = store.filterQuery(dbApp, query, filter)
+	if err != nil {
+		return []*catalog.Release{}, err
+	}
+
+	query.OrderExpr("id DESC")
+
+	if limit > 0 {
+		query.Limit(limit)
+	}
+
+	err = query.
 		Scan(store.ctx)
 
 	if err != nil {
@@ -465,46 +478,60 @@ func (store *DbCatalogStore) FetchReleases(filter catalog.Filter) ([]*catalog.Re
 func (store *DbCatalogStore) SetCriticality(filter catalog.Filter, criticality catalog.Criticality) ([]*catalog.Release, error) {
 	// TODO: Implement update functionality
 
-	return store.FetchReleases(filter)
+	return store.FetchReleases(filter, 0)
 }
 
 func (store *DbCatalogStore) SetStability(filter catalog.Filter, stability bool) ([]*catalog.Release, error) {
 	// TODO: Implement update functionality
 
-	return store.FetchReleases(filter)
+	return store.FetchReleases(filter, 0)
 }
 
 func (store *DbCatalogStore) SetUpgradeTarget(filter catalog.Filter, target catalog.UpgradeTarget) ([]*catalog.Release, error) {
 	// TODO: Implement update functionality
 
-	return store.FetchReleases(filter)
+	return store.FetchReleases(filter, 0)
 }
 
-func filterQuery(stmt *bun.SelectQuery, filter catalog.Filter) *bun.SelectQuery {
+func (store *DbCatalogStore) filterQuery(app *App, stmt *bun.SelectQuery, filter catalog.Filter) (*bun.SelectQuery, error) {
 	if filter.Variant != "" {
-		stmt = stmt.
-			Where("variant = ?", filter.Variant)
+		stmt.Where("variant = ?", filter.Variant)
 	}
 
 	if filter.OS != "" {
-		stmt = stmt.
-			Where("os = ?", filter.OS)
+		stmt.Where("os = ?", filter.OS)
 	}
 
 	if filter.Arch != "" {
-		stmt = stmt.
-			Where("arch = ?", filter.Arch)
+		stmt.Where("arch = ?", filter.Arch)
 	}
 
 	if filter.Alias != "" {
-		stmt = stmt.
-			Where("alias = ?", filter.Alias)
+		stmt.Where("alias = ?", filter.Alias)
 	}
 
 	if !filter.WithUnstable {
-		stmt = stmt.
-			Where("unstable = false")
+		stmt.Where("unstable = false")
 	}
 
-	return stmt
+	if filter.Groups != nil && len(filter.Groups) > 0 {
+		stmt.Join("LEFT JOIN releases_groups AS rg ON rg.release_id = release.id")
+		if len(filter.Groups) == 1 && filter.Groups[0] == "public" {
+			stmt.Where("rg.group_id IS NULL")
+		} else {
+			groups, err := store.getGroups(app, filter.Groups)
+			if err != nil {
+				return nil, err
+			}
+
+			groupIds := make([]int64, len(groups))
+			for i, groupObj := range groups {
+				groupIds[i] = groupObj.Id
+			}
+
+			stmt.Where("(rg.group_id IN (?) OR rg.group_id IS NULL)", bun.In(groupIds))
+		}
+	}
+
+	return stmt, nil
 }

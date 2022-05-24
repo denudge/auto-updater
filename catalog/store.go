@@ -13,7 +13,7 @@ type StoreInterface interface {
 
 	// Release management
 	StoreRelease(release *Release, allowUpdate bool) (*Release, error)
-	FetchReleases(filter Filter) ([]*Release, error)
+	FetchReleases(filter Filter, limit int) ([]*Release, error)
 	SetCriticality(filter Filter, criticality Criticality) ([]*Release, error)
 	SetStability(filter Filter, stability bool) ([]*Release, error)
 	SetUpgradeTarget(filter Filter, target UpgradeTarget) ([]*Release, error)

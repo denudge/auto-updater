@@ -29,9 +29,13 @@ func NewCli(app *App, api *Api) *cli.App {
 	}
 }
 
-func createLimitFlag() []cli.Flag {
+func createLimitFlag(defaultValue int) []cli.Flag {
 	return []cli.Flag{
-		&cli.IntFlag{Name: "limit", Usage: ""},
+		&cli.IntFlag{
+			Name:        "limit",
+			Usage:       fmt.Sprintf("Optional: Limit result set. Default: %d", defaultValue),
+			DefaultText: fmt.Sprintf("%d", defaultValue),
+		},
 	}
 }
 

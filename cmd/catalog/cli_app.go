@@ -38,7 +38,7 @@ func (app *App) createAppCommands() *cli.Command {
 			{
 				Name:  "list",
 				Usage: "list apps",
-				Flags: append(createAppFlags(), createLimitFlag()[0]),
+				Flags: append(createAppFlags(), createLimitFlag(0)[0]),
 				Action: func(c *cli.Context) error {
 
 					limit := parseLimitFlag(c, 0)
