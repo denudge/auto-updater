@@ -65,3 +65,14 @@ type ReleaseToGroup struct {
 	CreatedAt     time.Time `bun:"created_at"`
 	UpdatedAt     time.Time `bun:"updated_at"`
 }
+
+type ClientToGroup struct {
+	bun.BaseModel `bun:"table:clients_groups"`
+	Id            int64     `bun:"id,pk,autoincrement"`
+	ClientId      int64     `bun:"client_id"`
+	Client        *Client   `bun:"rel:belongs-to,join:client_id=id"`
+	GroupId       int64     `bun:"group_id"`
+	Group         *Group    `bun:"rel:belongs-to,join:group_id=id"`
+	CreatedAt     time.Time `bun:"created_at"`
+	UpdatedAt     time.Time `bun:"updated_at"`
+}

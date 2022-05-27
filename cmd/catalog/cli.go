@@ -25,6 +25,7 @@ func NewCli(app *App, api *Api) *cli.App {
 			app.createAppCommands(),
 			app.createGroupCommands(),
 			app.createReleaseCommands(),
+			app.createClientCommands(),
 		},
 	}
 }

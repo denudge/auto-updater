@@ -11,6 +11,9 @@ type StoreInterface interface {
 	ListGroups(filter GroupFilter, limit int) ([]*Group, error)
 	StoreGroup(group *Group, allowUpdate bool) (*Group, error)
 
+	// Client management
+	RegisterClient(app *App, variant string, groups []string) (*Client, error)
+
 	// Release management
 	StoreRelease(release *Release, allowUpdate bool) (*Release, error)
 	FetchReleases(filter Filter, limit int) ([]*Release, error)

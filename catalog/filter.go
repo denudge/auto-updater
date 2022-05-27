@@ -3,19 +3,20 @@ package catalog
 import "golang.org/x/mod/semver"
 
 type Filter struct {
-	Vendor        string
-	Product       string
-	Name          string
-	Variant       string
-	OS            string
-	Arch          string
-	Alias         string
-	MinVersion    string // use MinVersion == MaxVersion to hit an exact version
-	MaxVersion    string
-	AfterVersion  string // like a "MinVersion" but excluding this version
-	BeforeVersion string // like a "MaxVersion" but excluding this version
-	WithUnstable  bool
-	Groups        []string
+	Vendor         string
+	Product        string
+	Name           string
+	Variant        string
+	EnforceVariant bool // if an empty variant will be matched
+	OS             string
+	Arch           string
+	Alias          string
+	MinVersion     string // use MinVersion == MaxVersion to hit an exact version
+	MaxVersion     string
+	AfterVersion   string // like a "MinVersion" but excluding this version
+	BeforeVersion  string // like a "MaxVersion" but excluding this version
+	WithUnstable   bool
+	Groups         []string
 }
 
 func (f *Filter) CompleteVersions() {
