@@ -16,9 +16,6 @@ func (app *App) createReleaseCommands() *cli.Command {
 				Name:  "latest",
 				Usage: "list recently published releases",
 				Flags: append(createReleaseFilterFlags(), createLimitFlag(10)[0]),
-				Before: func(c *cli.Context) error {
-					return checkArguments(c, "latest", []string{"vendor", "product"})
-				},
 				Action: func(c *cli.Context) error {
 					limit := parseLimitFlag(c, 10)
 					return app.ListLatestReleases(limit)
@@ -29,11 +26,6 @@ func (app *App) createReleaseCommands() *cli.Command {
 				Usage: "list specific releases",
 				Flags: append(createReleaseFilterFlags(), createLimitFlag(0)[0]),
 				Before: func(c *cli.Context) error {
-					err := checkArguments(c, "list", []string{"vendor", "product"})
-					if err != nil {
-						return err
-					}
-
 					groups := c.StringSlice("group")
 					if groups != nil && len(groups) > 0 {
 						return checkGroupsInput(groups)
@@ -61,7 +53,7 @@ func (app *App) createReleaseCommands() *cli.Command {
 				Usage: "publish new release",
 				Flags: createReleaseFlags(),
 				Before: func(c *cli.Context) error {
-					err := checkArguments(c, "publish", []string{"vendor", "product", "version"})
+					err := checkArguments(c, "publish", []string{"version"})
 					if err != nil {
 						return err
 					}
@@ -101,15 +93,7 @@ func (app *App) createReleaseCommands() *cli.Command {
 			{
 				Name:  "set-upgrade-target",
 				Usage: "Set the upgrade target",
-				Flags: append(createReleaseFilterFlags(), &cli.StringFlag{Name: "upgrade-target", Usage: "The desired upgrade target"}),
-				Before: func(c *cli.Context) error {
-					err := checkArguments(c, "set-upgrade-target", []string{"vendor", "product", "upgrade-target"})
-					if err != nil {
-						return err
-					}
-
-					return nil
-				},
+				Flags: append(createReleaseFilterFlags(), &cli.StringFlag{Name: "upgrade-target", Usage: "The desired upgrade target", Required: true}),
 				Action: func(c *cli.Context) error {
 					value := c.String("upgrade-target")
 
@@ -130,11 +114,6 @@ func (app *App) createReleaseCommands() *cli.Command {
 					return append(flags[:len(flags)-1], &cli.StringSliceFlag{Name: "group", Usage: "Group(s). Use a single \"public\" group to specify the public group.", Required: true})
 				}(),
 				Before: func(c *cli.Context) error {
-					err := checkArguments(c, "set-groups", []string{"vendor", "product"})
-					if err != nil {
-						return err
-					}
-
 					return checkGroupsInput(c.StringSlice("group"))
 				},
 				Action: func(c *cli.Context) error {
@@ -151,8 +130,8 @@ func (app *App) createReleaseCommands() *cli.Command {
 
 func createReleaseFlags() []cli.Flag {
 	return []cli.Flag{
-		&cli.StringFlag{Name: "vendor", Usage: "Vendor name"},
-		&cli.StringFlag{Name: "product", Usage: "Product name"},
+		&cli.StringFlag{Name: "vendor", Usage: "Vendor name", Required: true},
+		&cli.StringFlag{Name: "product", Usage: "Product name", Required: true},
 		&cli.StringFlag{Name: "version", Usage: "Version in semantic versioning scheme"},
 		&cli.StringFlag{Name: "name", Usage: "Optional: product name (for printing)"},
 		&cli.StringFlag{Name: "variant", Usage: "Optional: variant (Pro, Free, ...)"},
@@ -188,8 +167,8 @@ func parseReleaseFlags(c *cli.Context) *catalog.Release {
 
 func createReleaseFilterFlags() []cli.Flag {
 	return []cli.Flag{
-		&cli.StringFlag{Name: "vendor", Usage: "Vendor name"},
-		&cli.StringFlag{Name: "product", Usage: "Product name"},
+		&cli.StringFlag{Name: "vendor", Usage: "Vendor name", Required: true},
+		&cli.StringFlag{Name: "product", Usage: "Product name", Required: true},
 		&cli.StringFlag{Name: "min-version", Usage: "Minimal version in semantic versioning scheme"},
 		&cli.StringFlag{Name: "after-version", Usage: "Minimal excluded version in semantic versioning scheme"},
 		&cli.StringFlag{Name: "before-version", Usage: "Maximum excluded version in semantic versioning scheme"},
@@ -199,7 +178,7 @@ func createReleaseFilterFlags() []cli.Flag {
 		&cli.StringFlag{Name: "os", Usage: "Operating system (MacOS, darwin, linux, ...)"},
 		&cli.StringFlag{Name: "arch", Usage: "Architecture (i686, ppc64, ...)"},
 		&cli.StringFlag{Name: "alias", Usage: "Alias name for the release"},
-		&cli.BoolFlag{Name: "with-unstable", Usage: "Include unstable releases"},
+		&cli.BoolFlag{Name: "with-unstable", Usage: "Include unstable releases", DefaultText: "false"},
 		&cli.StringSliceFlag{Name: "group", Usage: "Optional: Group(s). Use a single \"public\" group to specify the public group."},
 	}
 }

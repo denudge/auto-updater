@@ -14,9 +14,6 @@ func (app *App) createClientCommands() *cli.Command {
 				Name:  "register",
 				Usage: "register an app client",
 				Flags: append(createClientAppFlags(), &cli.StringSliceFlag{Name: "group", Usage: "Client group(s). Use none to put the client into the public group."}),
-				Before: func(c *cli.Context) error {
-					return checkArguments(c, "create", []string{"vendor", "product", "variant"})
-				},
 				Action: func(c *cli.Context) error {
 					a := parseAppFlags(c)
 					variant := c.String("variant")
@@ -39,7 +36,7 @@ func (app *App) createClientCommands() *cli.Command {
 						fmt.Println("Client has already been there.")
 					}
 
-					fmt.Printf("Client registered: %#v\n", stored)
+					fmt.Printf("Client registered: %s\n", stored.Uuid)
 
 					return nil
 				},

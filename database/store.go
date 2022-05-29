@@ -546,6 +546,11 @@ func (store *DbCatalogStore) RegisterClient(app *catalog.App, variant string, gr
 		return nil, err
 	}
 
+	// Is registering allowed at all?
+	if !dbApp.AllowRegister {
+		return nil, fmt.Errorf("client registration not allowed")
+	}
+
 	groupNames := make([]string, 0)
 	groupObjs := make([]Group, 0)
 	if groups != nil && len(groups) > 0 {

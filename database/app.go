@@ -14,6 +14,7 @@ type App struct {
 	Name          string    `bun:"name"`
 	Active        bool      `bun:"active,default:true"`
 	Locked        bool      `bun:"locked,default:false"`
+	AllowRegister bool      `bun:"allow_register,default:true"`
 	UpgradeTarget string    `bun:"upgrade_target"` // If empty, the default upgrade target will be used
 	CreatedAt     time.Time `bun:"created_at"`
 	UpdatedAt     time.Time `bun:"updated_at"`
@@ -27,6 +28,7 @@ func (app *App) ToCatalogApp() *catalog.App {
 		Name:          app.Name,
 		Active:        app.Active,
 		Locked:        app.Locked,
+		AllowRegister: app.AllowRegister,
 		UpgradeTarget: catalog.UpgradeTarget(app.UpgradeTarget),
 		Created:       app.CreatedAt,
 		Updated:       app.UpdatedAt,
@@ -68,6 +70,7 @@ func FromCatalogApp(app *catalog.App) App {
 		Name:          app.Name,
 		Active:        app.Active,
 		Locked:        app.Locked,
+		AllowRegister: app.AllowRegister,
 		UpgradeTarget: string(app.UpgradeTarget),
 		CreatedAt:     app.Created,
 		UpdatedAt:     app.Updated,

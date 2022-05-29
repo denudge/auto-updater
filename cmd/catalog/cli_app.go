@@ -15,10 +15,7 @@ func (app *App) createAppCommands() *cli.Command {
 			{
 				Name:  "create",
 				Usage: "create a new app",
-				Flags: createAppFlags(),
-				Before: func(c *cli.Context) error {
-					return checkArguments(c, "create", []string{"vendor", "product"})
-				},
+				Flags: createFullAppFlags(),
 				Action: func(c *cli.Context) error {
 					a := parseAppFlags(c)
 
@@ -38,7 +35,7 @@ func (app *App) createAppCommands() *cli.Command {
 			{
 				Name:  "list",
 				Usage: "list apps",
-				Flags: append(createAppFlags(), createLimitFlag(0)[0]),
+				Flags: createLimitFlag(0),
 				Action: func(c *cli.Context) error {
 
 					limit := parseLimitFlag(c, 0)
@@ -48,9 +45,9 @@ func (app *App) createAppCommands() *cli.Command {
 			{
 				Name:  "set-default-groups",
 				Usage: "Sets the default groups for an app",
-				Flags: append(createAppFlags(), &cli.StringSliceFlag{Name: "default-group", Usage: "Default group(s). Specify a single \"public\" group to unlink special groups."}),
+				Flags: append(createMinAppFlags(), &cli.StringSliceFlag{Name: "default-group", Usage: "Default group(s). Specify a single \"public\" group to unlink special groups."}),
 				Before: func(c *cli.Context) error {
-					return checkArguments(c, "create", []string{"vendor", "product", "default-group"})
+					return checkArguments(c, "create", []string{"default-group"})
 				},
 				Action: func(c *cli.Context) error {
 					a := parseAppFlags(c)
@@ -76,13 +73,21 @@ func (app *App) createAppCommands() *cli.Command {
 	}
 }
 
-func createAppFlags() []cli.Flag {
+func createMinAppFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{Name: "vendor", Usage: "Vendor name", Required: true},
+		&cli.StringFlag{Name: "product", Usage: "Product name", Required: true},
+	}
+}
+
+func createFullAppFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{Name: "vendor", Usage: "Vendor name", Required: true},
 		&cli.StringFlag{Name: "product", Usage: "Product name", Required: true},
 		&cli.StringFlag{Name: "name", Usage: "Product name (for printing)"},
-		&cli.BoolFlag{Name: "active", Usage: ""},
-		&cli.BoolFlag{Name: "locked", Usage: ""},
+		&cli.BoolFlag{Name: "inactive", Usage: "", DefaultText: "false"},
+		&cli.BoolFlag{Name: "allow-register", Usage: "If clients can register", DefaultText: "false"},
+		&cli.BoolFlag{Name: "locked", Usage: "", DefaultText: "false"},
 		&cli.StringFlag{Name: "upgrade-target", Usage: "Optional: upgrade target for the app"},
 	}
 }
@@ -92,8 +97,9 @@ func parseAppFlags(c *cli.Context) *catalog.App {
 		Vendor:        c.String("vendor"),
 		Product:       c.String("product"),
 		Name:          c.String("name"),
-		Active:        c.Bool("active"),
+		Active:        !c.Bool("inactive"),
 		Locked:        c.Bool("locked"),
+		AllowRegister: c.Bool("allow-register"),
 		UpgradeTarget: catalog.UpgradeTarget(c.String("upgrade-target")),
 		DefaultGroups: c.StringSlice("default-group"),
 		Created:       time.Now(),

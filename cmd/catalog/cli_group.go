@@ -17,7 +17,7 @@ func (app *App) createGroupCommands() *cli.Command {
 				Usage: "create a new group",
 				Flags: createGroupFlags(),
 				Before: func(c *cli.Context) error {
-					return checkArguments(c, "create", []string{"vendor", "product", "name"})
+					return checkArguments(c, "create", []string{"name"})
 				},
 				Action: func(c *cli.Context) error {
 					g := parseGroupFlags(c)
@@ -40,9 +40,6 @@ func (app *App) createGroupCommands() *cli.Command {
 				Name:  "list",
 				Usage: "list groups",
 				Flags: append(createGroupFlags(), createLimitFlag(0)[0]),
-				Before: func(c *cli.Context) error {
-					return checkArguments(c, "list", []string{"vendor", "product"})
-				},
 				Action: func(c *cli.Context) error {
 					g := parseGroupFlags(c)
 

@@ -12,6 +12,7 @@ type App struct {
 	Name          string        // for printing; if not given, "<vendor> <product>" will be used
 	Active        bool          // if this app is "delivered" or "handled" at all
 	Locked        bool          // if updates of this app are "delivered" at all
+	AllowRegister bool          // if clients are allowed to register
 	UpgradeTarget UpgradeTarget // If empty, the default upgrade target will be used
 	Created       time.Time
 	Updated       time.Time
