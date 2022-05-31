@@ -1,6 +1,7 @@
 package catalog
 
 type ClientState struct {
+	ClientId       string
 	Vendor         string
 	Product        string
 	Variant        string // optional
@@ -11,7 +12,7 @@ type ClientState struct {
 }
 
 func (c ClientState) IsValid() bool {
-	if c.Vendor == "" || c.Product == "" {
+	if c.ClientId == "" || c.Vendor == "" || c.Product == "" {
 		return false
 	}
 
