@@ -11,18 +11,33 @@ type ClientState struct {
 	WithUnstable   bool
 }
 
-func (c ClientState) IsValid() bool {
-	if c.ClientId == "" || c.Vendor == "" || c.Product == "" {
+func (state ClientState) IsValid() bool {
+	if state.ClientId == "" || state.Vendor == "" || state.Product == "" {
 		return false
 	}
 
 	return true
 }
 
-func (c ClientState) IsInstalled() bool {
-	if c.CurrentVersion == "" {
+func (state ClientState) IsInstalled() bool {
+	if state.CurrentVersion == "" {
 		return false
 	}
 
 	return true
+}
+
+func (state ClientState) ToFilter() Filter {
+	filter := Filter{
+		Vendor:         state.Vendor,
+		Product:        state.Product,
+		Variant:        state.Variant,
+		EnforceVariant: true,
+	}
+
+	if state.IsInstalled() {
+		filter.MinVersion = state.CurrentVersion
+	}
+
+	return filter
 }

@@ -25,7 +25,7 @@ type UpgradeInfo struct {
 	ReferenceUrl string
 }
 
-// FindInstallVersion retrieves the latest stable version
+// FindInstallVersion retrieves the latest (stable) version
 func FindInstallVersion(availableReleases []*Release, withUnstable bool) (*UpgradeStep, error) {
 	if len(availableReleases) < 1 {
 		return nil, nil
@@ -45,7 +45,7 @@ func FindInstallVersion(availableReleases []*Release, withUnstable bool) (*Upgra
 		}, nil
 	}
 
-	// everything unstable
+	// everything unstable or nothing released yet
 	return nil, nil
 }
 
@@ -167,4 +167,12 @@ func calculateDefaultCriticality(currentVersion string, targetVersion string) Cr
 	}
 
 	return criticality
+}
+
+func (step *UpgradeStep) ToPath() *UpgradePath {
+	return &UpgradePath{
+		Steps:       []UpgradeStep{*step},
+		Info:        step.Info,
+		Criticality: step.Criticality,
+	}
 }
