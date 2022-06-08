@@ -37,9 +37,34 @@ func (console *Console) createAppCommands() *cli.Command {
 				Usage: "list apps",
 				Flags: createLimitFlag(0),
 				Action: func(c *cli.Context) error {
-
 					limit := parseLimitFlag(c, 0)
 					return console.ListApps(limit)
+				},
+			},
+			{
+				Name:  "show",
+				Usage: "show specific app",
+				Flags: createMinAppFlags(),
+				Action: func(c *cli.Context) error {
+					a := parseAppFlags(c)
+
+					app, err := console.app.Store.FindApp(a.Vendor, a.Product)
+					if err != nil {
+						return err
+					}
+
+					fmt.Printf("Vendor: %s\n", app.Vendor)
+					fmt.Printf("Product: %s\n", app.Product)
+					fmt.Printf("Active: %v\n", app.Active)
+					fmt.Printf("Locked: %v\n", app.Locked)
+					fmt.Printf("AllowRegister: %v\n", app.AllowRegister)
+					fmt.Printf("Variants: %v\n", catalog.FormatGroups(app.Variants))
+					fmt.Printf("Groups: %v\n", catalog.FormatGroups(app.Groups))
+					fmt.Printf("Default Groups: %v\n", catalog.FormatGroups(app.DefaultGroups))
+					fmt.Printf("Created: %s\n", app.Created.Format(time.RFC1123))
+					fmt.Printf("Updated: %s\n", app.Updated.Format(time.RFC1123))
+
+					return nil
 				},
 			},
 			{
