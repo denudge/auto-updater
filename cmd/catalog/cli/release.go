@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (app *App) createReleaseCommands() *cli.Command {
+func (console *Console) createReleaseCommands() *cli.Command {
 	return &cli.Command{
 		Name:  "release",
 		Usage: "release management",
@@ -18,7 +18,7 @@ func (app *App) createReleaseCommands() *cli.Command {
 				Flags: append(createReleaseFilterFlags(), createLimitFlag(10)[0]),
 				Action: func(c *cli.Context) error {
 					limit := parseLimitFlag(c, 10)
-					return app.ListLatestReleases(limit)
+					return console.app.ListLatestReleases(limit)
 				},
 			},
 			{
@@ -36,7 +36,7 @@ func (app *App) createReleaseCommands() *cli.Command {
 				Action: func(c *cli.Context) error {
 					limit := parseLimitFlag(c, 0)
 					filter := parseReleaseFilterFlags(c)
-					releases, err := app.store.FetchReleases(filter, limit)
+					releases, err := console.app.Store.FetchReleases(filter, limit)
 					if err != nil {
 						return err
 					}
@@ -68,14 +68,14 @@ func (app *App) createReleaseCommands() *cli.Command {
 				Action: func(c *cli.Context) error {
 					release := parseReleaseFlags(c)
 
-					storedApp, err := app.store.FindApp(release.App.Vendor, release.App.Product)
+					storedApp, err := console.app.Store.FindApp(release.App.Vendor, release.App.Product)
 					if err != nil || storedApp == nil {
-						fmt.Printf("App \"%s\" not found. Please create the app first.\n", release.App.String())
+						fmt.Printf("Console \"%s\" not found. Please create the console first.\n", release.App.String())
 
 						return nil
 					}
 
-					stored, err := app.store.StoreRelease(release, false)
+					stored, err := console.app.Store.StoreRelease(release, false)
 					if err != nil {
 						return err
 					}

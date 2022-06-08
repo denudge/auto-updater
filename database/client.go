@@ -53,7 +53,7 @@ func (store *DbCatalogStore) RegisterClient(app *catalog.App, variant string, gr
 		return nil, err
 	}
 
-	// Make sure we have the right default groups
+	// Make sure we have the right groups
 	groupNames := make([]string, 0)
 	groupObjs := make([]Group, 0)
 	if groups != nil && len(groups) > 0 {

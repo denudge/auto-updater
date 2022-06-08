@@ -1,13 +1,14 @@
-package main
+package cli
 
 import (
+	"errors"
 	"fmt"
 	"github.com/denudge/auto-updater/catalog"
 	"github.com/urfave/cli/v2"
 	"time"
 )
 
-func (app *App) createGroupCommands() *cli.Command {
+func (console *Console) createGroupCommands() *cli.Command {
 	return &cli.Command{
 		Name:  "group",
 		Usage: "group management",
@@ -23,7 +24,7 @@ func (app *App) createGroupCommands() *cli.Command {
 					g := parseGroupFlags(c)
 					g.Created = time.Now()
 
-					stored, err := app.store.StoreGroup(g, false)
+					stored, err := console.app.Store.StoreGroup(g, false)
 					if err != nil {
 						return err
 					}
@@ -47,14 +48,14 @@ func (app *App) createGroupCommands() *cli.Command {
 
 					limit := parseLimitFlag(c, 0)
 
-					return app.listAppGroups(g.App.Vendor, g.App.Product, g.Name, limit)
+					return console.listAppGroups(g.App.Vendor, g.App.Product, g.Name, limit)
 				},
 			},
 		},
 	}
 }
 
-func (app *App) listAppGroups(vendor string, product string, name string, limit int) error {
+func (console *Console) listAppGroups(vendor string, product string, name string, limit int) error {
 
 	filter := catalog.GroupFilter{
 		Vendor:  vendor,
@@ -62,7 +63,7 @@ func (app *App) listAppGroups(vendor string, product string, name string, limit 
 		Name:    name,
 	}
 
-	groups, err := app.store.ListGroups(filter, limit)
+	groups, err := console.app.Store.ListGroups(filter, limit)
 	if err != nil {
 		return err
 	}
@@ -92,4 +93,27 @@ func parseGroupFlags(c *cli.Context) *catalog.Group {
 		Created: time.Now(),
 		Updated: time.Now(),
 	}
+}
+
+func checkGroupsInput(strs []string) error {
+	hasPublic := false
+	hasOther := false
+
+	if strs == nil || len(strs) < 1 {
+		return errors.New("no groups given")
+	}
+
+	for _, str := range strs {
+		if str == "public" {
+			hasPublic = true
+		} else {
+			hasOther = true
+		}
+	}
+
+	if hasPublic && hasOther {
+		return errors.New("public and groups cannot be mixed")
+	}
+
+	return nil
 }

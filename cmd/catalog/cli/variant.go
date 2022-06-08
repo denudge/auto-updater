@@ -1,4 +1,4 @@
-package main
+package cli
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (app *App) createVariantCommands() *cli.Command {
+func (console *Console) createVariantCommands() *cli.Command {
 	return &cli.Command{
 		Name:  "variant",
 		Usage: "variant management",
@@ -28,7 +28,7 @@ func (app *App) createVariantCommands() *cli.Command {
 					v := parseVariantFlags(c)
 					v.Created = time.Now()
 
-					stored, err := app.store.StoreVariant(v, false)
+					stored, err := console.app.Store.StoreVariant(v, false)
 					if err != nil {
 						return err
 					}
@@ -52,14 +52,14 @@ func (app *App) createVariantCommands() *cli.Command {
 
 					limit := parseLimitFlag(c, 0)
 
-					return app.listAppVariants(v.App.Vendor, v.App.Product, v.Name, limit)
+					return console.listAppVariants(v.App.Vendor, v.App.Product, v.Name, limit)
 				},
 			},
 		},
 	}
 }
 
-func (app *App) listAppVariants(vendor string, product string, name string, limit int) error {
+func (console *Console) listAppVariants(vendor string, product string, name string, limit int) error {
 
 	filter := catalog.VariantFilter{
 		Vendor:  vendor,
@@ -67,7 +67,7 @@ func (app *App) listAppVariants(vendor string, product string, name string, limi
 		Name:    name,
 	}
 
-	variants, err := app.store.ListVariants(filter, limit)
+	variants, err := console.app.Store.ListVariants(filter, limit)
 	if err != nil {
 		return err
 	}

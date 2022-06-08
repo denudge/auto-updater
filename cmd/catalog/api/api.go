@@ -1,7 +1,8 @@
-package main
+package api
 
 import (
 	"fmt"
+	"github.com/denudge/auto-updater/cmd/catalog/app"
 	"github.com/denudge/auto-updater/config"
 	"log"
 	"net/http"
@@ -9,10 +10,10 @@ import (
 
 type Api struct {
 	mux *http.ServeMux
-	app *App
+	app *app.App
 }
 
-func NewApi(app *App) *Api {
+func NewApi(app *app.App) *Api {
 	api := &Api{
 		app: app,
 		mux: http.NewServeMux(),

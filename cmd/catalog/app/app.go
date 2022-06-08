@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"context"
@@ -10,19 +10,19 @@ import (
 
 // App implements the Catalog interface and provides the user-facing server part as well (as some basic management methods)
 type App struct {
-	db    *bun.DB
-	store catalog.StoreInterface
+	Db    *bun.DB
+	Store catalog.StoreInterface
 }
 
 func NewApp(db *bun.DB, ctx context.Context) *App {
 	return &App{
-		db:    db,
-		store: database.NewDbCatalogStore(db, ctx),
+		Db:    db,
+		Store: database.NewDbCatalogStore(db, ctx),
 	}
 }
 
 func (app *App) RegisterClient(vendor string, product string, variant string) (*catalog.ClientState, error) {
-	dbApp, err := app.store.FindApp(vendor, product)
+	dbApp, err := app.Store.FindApp(vendor, product)
 	if err != nil {
 		return nil, fmt.Errorf("could not find app %s %s", vendor, product)
 	}
@@ -32,7 +32,7 @@ func (app *App) RegisterClient(vendor string, product string, variant string) (*
 		return nil, fmt.Errorf("client registration not allowed")
 	}
 
-	client, err := app.store.RegisterClient(dbApp, variant, []string{})
+	client, err := app.Store.RegisterClient(dbApp, variant, []string{})
 	if err != nil {
 		return nil, fmt.Errorf("could register client for app %s %s", vendor, product)
 	}
@@ -64,7 +64,7 @@ func (app *App) ShouldUpgrade(state *catalog.ClientState) (catalog.Criticality, 
 		MinVersion:     state.CurrentVersion,
 	}
 
-	releases, err := app.store.FetchReleases(filter, 0)
+	releases, err := app.Store.FetchReleases(filter, 0)
 	if err != nil {
 		return catalog.None, err
 	}
@@ -88,7 +88,7 @@ func (app *App) FindNextUpgrade(state *catalog.ClientState) (*catalog.UpgradeSte
 
 	filter := state.ToFilter()
 
-	releases, err := app.store.FetchReleases(filter, 0)
+	releases, err := app.Store.FetchReleases(filter, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (app *App) FindUpgradePath(state *catalog.ClientState) (*catalog.UpgradePat
 
 	filter := state.ToFilter()
 
-	releases, err := app.store.FetchReleases(filter, 0)
+	releases, err := app.Store.FetchReleases(filter, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (app *App) FindUpgradePath(state *catalog.ClientState) (*catalog.UpgradePat
 
 // ListLatestReleases is an internal function for server management
 func (app *App) ListLatestReleases(limit int) error {
-	dbStore, ok := app.store.(*database.DbCatalogStore)
+	dbStore, ok := app.Store.(*database.DbCatalogStore)
 	if !ok {
 		fmt.Printf("Cannot print latest releases")
 		return nil

@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"github.com/denudge/auto-updater/cmd/catalog/api"
+	"github.com/denudge/auto-updater/cmd/catalog/app"
+	"github.com/denudge/auto-updater/cmd/catalog/cli"
 	"github.com/denudge/auto-updater/config"
 	"github.com/denudge/auto-updater/database"
 	"log"
@@ -13,31 +16,17 @@ func main() {
 	defer database.Close(db)
 
 	// Create app
-	app := NewApp(db, context.Background())
+	cApp := app.NewApp(db, context.Background())
 
 	// Create API
-	api := NewApi(app)
+	cApi := api.NewApi(cApp)
 
 	// Create CLI
-	cmd := NewCli(app, api)
+	console := cli.NewConsole(cApp, cApi)
 
 	args := os.Args
 
-	/*
-		args := []string{
-			"bin/catalog",
-			"app",
-			"set-default-groups",
-			"--vendor",
-			"Foo",
-			"--product",
-			"Bar",
-			"--default-group",
-			"Betatester",
-		}
-	*/
-
-	if err := cmd.Run(args); err != nil {
+	if err := console.Cli.Run(args); err != nil {
 		log.Fatal(err)
 	}
 }

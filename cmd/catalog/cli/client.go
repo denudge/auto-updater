@@ -1,18 +1,18 @@
-package main
+package cli
 
 import (
 	"fmt"
 	"github.com/urfave/cli/v2"
 )
 
-func (app *App) createClientCommands() *cli.Command {
+func (console *Console) createClientCommands() *cli.Command {
 	return &cli.Command{
 		Name:  "client",
 		Usage: "client management",
 		Subcommands: []*cli.Command{
 			{
 				Name:  "register",
-				Usage: "register an app client",
+				Usage: "register an console client",
 				Flags: append(createClientAppFlags(), &cli.StringSliceFlag{Name: "group", Usage: "Client group(s). Use none to put the client into the public group."}),
 				Action: func(c *cli.Context) error {
 					a := parseAppFlags(c)
@@ -26,7 +26,7 @@ func (app *App) createClientCommands() *cli.Command {
 						}
 					}
 
-					stored, err := app.store.RegisterClient(a, variant, c.StringSlice("group"))
+					stored, err := console.app.Store.RegisterClient(a, variant, c.StringSlice("group"))
 					if err != nil {
 						return err
 					}
@@ -34,9 +34,9 @@ func (app *App) createClientCommands() *cli.Command {
 					// time.Time.Before() cannot be used because the database might drop fractional seconds
 					if stored.Created.Unix() < a.Created.Unix() {
 						fmt.Println("Client has already been there.")
+					} else {
+						fmt.Printf("Client registered: %s\n", stored.Uuid)
 					}
-
-					fmt.Printf("Client registered: %s\n", stored.Uuid)
 
 					return nil
 				},
