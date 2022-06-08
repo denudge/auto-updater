@@ -48,15 +48,15 @@ func createLimitFlag(defaultValue int) []cli.Flag {
 	return []cli.Flag{
 		&cli.IntFlag{
 			Name:        "limit",
-			Usage:       fmt.Sprintf("Optional: Limit result set. Default: %d", defaultValue),
+			Usage:       "Optional: Limit result set",
 			DefaultText: fmt.Sprintf("%d", defaultValue),
 		},
 	}
 }
 
 func parseLimitFlag(c *cli.Context, defaultValue int) int {
-	given := c.String("limit")
-	if given == "" {
+	given := c.Int("limit")
+	if given == 0 {
 		return defaultValue
 	}
 
