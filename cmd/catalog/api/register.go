@@ -37,6 +37,15 @@ func NewRegisterResponse(state *catalog.ClientState) *RegisterResponse {
 	}
 }
 
+func (response *RegisterResponse) ToClientState() *catalog.ClientState {
+	return &catalog.ClientState{
+		ClientId: response.ClientId,
+		Vendor:   response.Vendor,
+		Product:  response.Product,
+		Variant:  response.Variant,
+	}
+}
+
 func (api *Api) register(w http.ResponseWriter, r *http.Request) {
 	request := RegisterRequest{}
 
@@ -45,7 +54,7 @@ func (api *Api) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	clientState, err := api.app.RegisterClient(request.Vendor, request.Product, request.Variant)
+	clientState, err := api.catalog.RegisterClient(request.Vendor, request.Product, request.Variant)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("error registering client: %s", err.Error()), http.StatusBadRequest)
 		return

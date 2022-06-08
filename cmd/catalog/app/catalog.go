@@ -8,21 +8,21 @@ import (
 	"github.com/uptrace/bun"
 )
 
-// App implements the Catalog interface and provides the user-facing server part as well (as some basic management methods)
-type App struct {
+// Catalog implements the catalog.Catalog interface and provides the user-facing server part (as well as some basic management methods)
+type Catalog struct {
 	Db    *bun.DB
 	Store catalog.StoreInterface
 }
 
-func NewApp(db *bun.DB, ctx context.Context) *App {
-	return &App{
+func NewCatalog(db *bun.DB, ctx context.Context) *Catalog {
+	return &Catalog{
 		Db:    db,
 		Store: database.NewDbCatalogStore(db, ctx),
 	}
 }
 
-func (app *App) RegisterClient(vendor string, product string, variant string) (*catalog.ClientState, error) {
-	dbApp, err := app.Store.FindApp(vendor, product)
+func (cat *Catalog) RegisterClient(vendor string, product string, variant string) (*catalog.ClientState, error) {
+	dbApp, err := cat.Store.FindApp(vendor, product)
 	if err != nil {
 		return nil, fmt.Errorf("could not find app %s %s", vendor, product)
 	}
@@ -32,9 +32,9 @@ func (app *App) RegisterClient(vendor string, product string, variant string) (*
 		return nil, fmt.Errorf("client registration not allowed")
 	}
 
-	client, err := app.Store.RegisterClient(dbApp, variant, []string{})
+	client, err := cat.Store.RegisterClient(dbApp, variant, []string{})
 	if err != nil {
-		return nil, fmt.Errorf("could register client for app %s %s", vendor, product)
+		return nil, fmt.Errorf("could not register client for app %s %s", vendor, product)
 	}
 
 	state := &catalog.ClientState{
@@ -47,7 +47,7 @@ func (app *App) RegisterClient(vendor string, product string, variant string) (*
 	return state, nil
 }
 
-func (app *App) ShouldUpgrade(state *catalog.ClientState) (catalog.Criticality, error) {
+func (cat *Catalog) ShouldUpgrade(state *catalog.ClientState) (catalog.Criticality, error) {
 	if !state.IsValid() {
 		return catalog.None, fmt.Errorf("state is not valid. Please register first")
 	}
@@ -64,7 +64,7 @@ func (app *App) ShouldUpgrade(state *catalog.ClientState) (catalog.Criticality, 
 		MinVersion:     state.CurrentVersion,
 	}
 
-	releases, err := app.Store.FetchReleases(filter, 0)
+	releases, err := cat.Store.FetchReleases(filter, 0)
 	if err != nil {
 		return catalog.None, err
 	}
@@ -81,14 +81,14 @@ func (app *App) ShouldUpgrade(state *catalog.ClientState) (catalog.Criticality, 
 	return step.Criticality, nil
 }
 
-func (app *App) FindNextUpgrade(state *catalog.ClientState) (*catalog.UpgradeStep, error) {
+func (cat *Catalog) FindNextUpgrade(state *catalog.ClientState) (*catalog.UpgradeStep, error) {
 	if !state.IsValid() {
 		return nil, fmt.Errorf("state is not valid. Please register first")
 	}
 
 	filter := state.ToFilter()
 
-	releases, err := app.Store.FetchReleases(filter, 0)
+	releases, err := cat.Store.FetchReleases(filter, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -101,14 +101,14 @@ func (app *App) FindNextUpgrade(state *catalog.ClientState) (*catalog.UpgradeSte
 	return catalog.FindNextUpgrade(releases, state.CurrentVersion)
 }
 
-func (app *App) FindUpgradePath(state *catalog.ClientState) (*catalog.UpgradePath, error) {
+func (cat *Catalog) FindUpgradePath(state *catalog.ClientState) (*catalog.UpgradePath, error) {
 	if !state.IsValid() {
 		return nil, fmt.Errorf("state is not valid. Please register first")
 	}
 
 	filter := state.ToFilter()
 
-	releases, err := app.Store.FetchReleases(filter, 0)
+	releases, err := cat.Store.FetchReleases(filter, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -127,8 +127,8 @@ func (app *App) FindUpgradePath(state *catalog.ClientState) (*catalog.UpgradePat
 }
 
 // ListLatestReleases is an internal function for server management
-func (app *App) ListLatestReleases(limit int) error {
-	dbStore, ok := app.Store.(*database.DbCatalogStore)
+func (cat *Catalog) ListLatestReleases(limit int) error {
+	dbStore, ok := cat.Store.(*database.DbCatalogStore)
 	if !ok {
 		fmt.Printf("Cannot print latest releases")
 		return nil

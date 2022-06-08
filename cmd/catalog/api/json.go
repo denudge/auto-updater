@@ -13,17 +13,9 @@ type Validatable interface {
 
 // parseAndValidateJsonRequest unmarshalls the request body into v. Errors are written to the HTTP response
 func (api *Api) parseAndValidateJsonRequest(w http.ResponseWriter, r *http.Request, v Validatable) error {
-	var body []byte
-	_, err := r.Body.Read(body)
+	err := json.NewDecoder(r.Body).Decode(v)
 	if err != nil {
 		err := fmt.Errorf("error reading request body")
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return err
-	}
-
-	err = json.Unmarshal(body, v)
-	if err != nil {
-		err = fmt.Errorf("error decoding request body")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return err
 	}

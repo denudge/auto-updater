@@ -12,10 +12,10 @@ import (
 
 type Console struct {
 	Cli *cli.App
-	app *app.App
+	app *app.Catalog
 }
 
-func NewConsole(app *app.App, api *api.Api) *Console {
+func NewConsole(app *app.Catalog, api *api.Api) *Console {
 	console := &Console{
 		app: app,
 	}
@@ -25,6 +25,8 @@ func NewConsole(app *app.App, api *api.Api) *Console {
 		Commands: []*cli.Command{
 			// A bunch of database (migration) related commands
 			database.NewCommand(migrate.NewMigrator(app.Db, migrations.Migrations)),
+
+			// The main HTTP server command
 			{
 				Name:  "serve",
 				Usage: "run HTTP catalog API server",
@@ -33,6 +35,8 @@ func NewConsole(app *app.App, api *api.Api) *Console {
 					return nil
 				},
 			},
+
+			// Management commands
 			console.createAppCommands(),
 			console.createVariantCommands(),
 			console.createGroupCommands(),

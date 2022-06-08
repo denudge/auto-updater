@@ -9,14 +9,14 @@ import (
 )
 
 type Api struct {
-	mux *http.ServeMux
-	app *app.App
+	mux     *http.ServeMux
+	catalog *app.Catalog
 }
 
-func NewApi(app *app.App) *Api {
+func NewApi(catalog *app.Catalog) *Api {
 	api := &Api{
-		app: app,
-		mux: http.NewServeMux(),
+		catalog: catalog,
+		mux:     http.NewServeMux(),
 	}
 
 	api.setUpRoutes()
@@ -40,7 +40,7 @@ func (api *Api) Serve() {
 	}
 
 	log.Println("Serving HTTP API on port", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, api.mux))
 }
 
 // validateMethodIs checks if a given HTTP method is used. The error is written to the HTTP response

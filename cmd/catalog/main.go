@@ -16,7 +16,7 @@ func main() {
 	defer database.Close(db)
 
 	// Create app
-	cApp := app.NewApp(db, context.Background())
+	cApp := app.NewCatalog(db, context.Background())
 
 	// Create API
 	cApi := api.NewApi(cApp)
