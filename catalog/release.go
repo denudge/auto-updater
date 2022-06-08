@@ -15,6 +15,8 @@ type Release struct {
 	Version       string // for use with semantic versioning
 	Unstable      bool   // some clients may not want to use unstable versions
 	Alias         string // sth like "Focal Fossa"; optional, for printing (and release management) only
+	Link          string // Some URL or whatever the installer should be pointed to
+	Format        string // The package format might change over time. Use format to handle these generations
 	Signature     string // a cryptographical representation (hash etc)
 	Tags          []string
 	UpgradeTarget UpgradeTarget // If empty, the default upgrade target will be used

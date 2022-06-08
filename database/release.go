@@ -21,6 +21,8 @@ type Release struct {
 	Version       string    `bun:"version"`
 	Unstable      bool      `bun:"unstable"`
 	Alias         string    `bun:"alias"`
+	Link          string    `bun:"link"`
+	Format        string    `bun:"format"`
 	Signature     string    `bun:"signature"` // a cryptographical representation (hash etc)
 	Tags          []string  `bun:"tags,array"`
 	UpgradeTarget string    `bun:"upgrade_target"` // If empty, the default upgrade target will be used
@@ -44,6 +46,8 @@ func (r *Release) ToCatalogRelease() *catalog.Release {
 		Version:       r.Version,
 		Unstable:      r.Unstable,
 		Alias:         r.Alias,
+		Link:          r.Link,
+		Format:        r.Format,
 		Signature:     r.Signature,
 		Tags:          r.Tags,
 		UpgradeTarget: catalog.UpgradeTarget(r.UpgradeTarget),
@@ -69,6 +73,8 @@ func FromCatalogRelease(r *catalog.Release) Release {
 		Version:       r.Version,
 		Unstable:      r.Unstable,
 		Alias:         r.Alias,
+		Link:          r.Link,
+		Format:        r.Format,
 		Signature:     r.Signature,
 		Tags:          r.Tags,
 		UpgradeTarget: string(r.UpgradeTarget),
