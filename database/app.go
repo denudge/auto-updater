@@ -102,7 +102,7 @@ func transformApps(apps []App) ([]*catalog.App, error) {
 }
 
 func (store *DbCatalogStore) FindApp(vendor string, product string) (*catalog.App, error) {
-	dbApp, err := store.getApp(vendor, product, true)
+	dbApp, err := store.getApp(vendor, product, true, true)
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +116,7 @@ func (store *DbCatalogStore) ListApps(limit int) ([]*catalog.App, error) {
 	query := store.db.NewSelect().
 		Model(&apps).
 		Relation("Groups").
+		Relation("Variants").
 		OrderExpr("id DESC")
 
 	if limit > 0 {
@@ -157,7 +158,7 @@ func (store *DbCatalogStore) StoreApp(app *catalog.App, allowUpdate bool) (*cata
 
 func (store *DbCatalogStore) SetAppDefaultGroups(app *catalog.App) (*catalog.App, error) {
 	// Now make sure we have the right default groups
-	dbApp, err := store.getApp(app.Vendor, app.Product, false)
+	dbApp, err := store.getApp(app.Vendor, app.Product, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -204,10 +205,10 @@ func (store *DbCatalogStore) setAppDefaultGroups(app *App, groups []string) (*Ap
 		return nil, err
 	}
 
-	return store.getApp(app.Vendor, app.Product, true)
+	return store.getApp(app.Vendor, app.Product, true, true)
 }
 
-func (store *DbCatalogStore) getApp(vendor string, product string, withGroups bool) (*App, error) {
+func (store *DbCatalogStore) getApp(vendor string, product string, withGroups bool, withVariants bool) (*App, error) {
 	app := App{}
 
 	query := store.db.NewSelect().
@@ -217,6 +218,10 @@ func (store *DbCatalogStore) getApp(vendor string, product string, withGroups bo
 
 	if withGroups {
 		query.Relation("Groups")
+	}
+
+	if withVariants {
+		query.Relation("Variants")
 	}
 
 	err := query.

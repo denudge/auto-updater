@@ -79,7 +79,7 @@ func (store *DbCatalogStore) ListVariants(filter catalog.VariantFilter, limit in
 	// Reserve reasonable space
 	variants := make([]Variant, 0, limit)
 
-	dbApp, err := store.getApp(filter.Vendor, filter.Product, false)
+	dbApp, err := store.getApp(filter.Vendor, filter.Product, false, false)
 	if err != nil || dbApp == nil {
 		return []*catalog.Variant{}, err
 	}
@@ -115,7 +115,7 @@ func (store *DbCatalogStore) StoreVariant(
 ) (*catalog.Variant, error) {
 	v := FromCatalogVariant(variant)
 
-	dbApp, err := store.getApp(variant.App.Vendor, variant.App.Product, false)
+	dbApp, err := store.getApp(variant.App.Vendor, variant.App.Product, false, false)
 	if err != nil {
 		return nil, err
 	}

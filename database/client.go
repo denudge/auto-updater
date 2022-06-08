@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"github.com/denudge/auto-updater/catalog"
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
@@ -48,7 +49,7 @@ func (c *Client) ToCatalogClient() *catalog.Client {
 }
 
 func (store *DbCatalogStore) RegisterClient(app *catalog.App, variant string, groups []string) (*catalog.Client, error) {
-	dbApp, err := store.getApp(app.Vendor, app.Product, false)
+	dbApp, err := store.getApp(app.Vendor, app.Product, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +63,27 @@ func (store *DbCatalogStore) RegisterClient(app *catalog.App, variant string, gr
 		groupObjs, err = store.getGroups(dbApp, groupNames)
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	// Check variant and if registration is allowed for this particular variant
+	if variant != "" {
+		registerAllowed := false
+		variantFound := false
+		if dbApp.Variants != nil && len(dbApp.Variants) > 0 {
+			for _, v := range dbApp.Variants {
+				if v.Name == variant {
+					variantFound = true
+					registerAllowed = v.AllowRegister
+					break
+				}
+			}
+		}
+		if !variantFound {
+			return nil, fmt.Errorf("unknown variant \"%s\"", variant)
+		}
+		if !registerAllowed {
+			return nil, fmt.Errorf("client registration is not allowed for variant \"%s\"", variant)
 		}
 	}
 

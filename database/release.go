@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"github.com/denudge/auto-updater/catalog"
 	"github.com/uptrace/bun"
 	"strings"
@@ -113,7 +114,7 @@ func (store *DbCatalogStore) LatestReleases(limit int) ([]*catalog.Release, erro
 }
 
 func (store *DbCatalogStore) FetchReleases(filter catalog.Filter, limit int) ([]*catalog.Release, error) {
-	dbApp, err := store.getApp(filter.Vendor, filter.Product, false)
+	dbApp, err := store.getApp(filter.Vendor, filter.Product, false, false)
 	if err != nil || dbApp == nil {
 		return []*catalog.Release{}, err
 	}
@@ -168,12 +169,10 @@ func (store *DbCatalogStore) StoreRelease(
 ) (*catalog.Release, error) {
 	r := FromCatalogRelease(release)
 
-	dbApp, err := store.getApp(release.App.Vendor, release.App.Product, true)
+	dbApp, err := store.getApp(release.App.Vendor, release.App.Product, true, true)
 	if err != nil {
 		return nil, err
 	}
-
-	r.AppId = dbApp.Id
 
 	// Check groups before inserting any release
 	groups := make([]Group, 0)
@@ -186,6 +185,25 @@ func (store *DbCatalogStore) StoreRelease(
 			return nil, err
 		}
 	}
+
+	// Check variant before inserting the release
+	if r.Variant != "" {
+		variantFound := false
+		if dbApp.Variants != nil && len(dbApp.Variants) > 0 {
+			for _, variant := range dbApp.Variants {
+				if r.Variant == variant.Name {
+					variantFound = true
+					break
+				}
+			}
+		}
+
+		if !variantFound {
+			return nil, fmt.Errorf("unknown variant \"%s\"", r.Variant)
+		}
+	}
+
+	r.AppId = dbApp.Id
 
 	stmt := store.db.NewInsert().
 		Model(&r)

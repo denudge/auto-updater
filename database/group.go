@@ -79,7 +79,7 @@ func (store *DbCatalogStore) ListGroups(filter catalog.GroupFilter, limit int) (
 	// Reserve reasonable space
 	groups := make([]Group, 0, limit)
 
-	dbApp, err := store.getApp(filter.Vendor, filter.Product, false)
+	dbApp, err := store.getApp(filter.Vendor, filter.Product, false, false)
 	if err != nil || dbApp == nil {
 		return []*catalog.Group{}, err
 	}
@@ -115,7 +115,7 @@ func (store *DbCatalogStore) StoreGroup(
 ) (*catalog.Group, error) {
 	g := FromCatalogGroup(group)
 
-	dbApp, err := store.getApp(group.App.Vendor, group.App.Product, false)
+	dbApp, err := store.getApp(group.App.Vendor, group.App.Product, false, false)
 	if err != nil {
 		return nil, err
 	}

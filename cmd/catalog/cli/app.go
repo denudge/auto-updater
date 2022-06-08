@@ -9,8 +9,8 @@ import (
 
 func (console *Console) createAppCommands() *cli.Command {
 	return &cli.Command{
-		Name:  "console",
-		Usage: "console management",
+		Name:  "app",
+		Usage: "app management",
 		Subcommands: []*cli.Command{
 			{
 				Name:  "create",
