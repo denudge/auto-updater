@@ -24,12 +24,17 @@ func NewApp(db *bun.DB, ctx context.Context) *App {
 func (app *App) RegisterClient(vendor string, product string, variant string) (*catalog.ClientState, error) {
 	dbApp, err := app.store.FindApp(vendor, product)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not find app %s %s", vendor, product)
+	}
+
+	// Is registering allowed at all?
+	if !dbApp.AllowRegister {
+		return nil, fmt.Errorf("client registration not allowed")
 	}
 
 	client, err := app.store.RegisterClient(dbApp, variant, []string{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could register client for app %s %s", vendor, product)
 	}
 
 	state := &catalog.ClientState{

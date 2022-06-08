@@ -538,19 +538,12 @@ func (store *DbCatalogStore) filterQuery(app *App, stmt *bun.SelectQuery, filter
 }
 
 func (store *DbCatalogStore) RegisterClient(app *catalog.App, variant string, groups []string) (*catalog.Client, error) {
-	// return nil, fmt.Errorf("not implemented yet")
-
-	// Now make sure we have the right default groups
 	dbApp, err := store.getApp(app.Vendor, app.Product, false)
 	if err != nil {
 		return nil, err
 	}
 
-	// Is registering allowed at all?
-	if !dbApp.AllowRegister {
-		return nil, fmt.Errorf("client registration not allowed")
-	}
-
+	// Make sure we have the right default groups
 	groupNames := make([]string, 0)
 	groupObjs := make([]Group, 0)
 	if groups != nil && len(groups) > 0 {
@@ -578,8 +571,6 @@ func (store *DbCatalogStore) RegisterClient(app *catalog.App, variant string, gr
 	if _, err := stmt.Exec(store.ctx); err != nil {
 		return nil, err
 	}
-
-	// TODO: Iterate over group objects and link groups, if any
 
 	stored := Client{}
 
