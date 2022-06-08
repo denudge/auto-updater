@@ -23,6 +23,7 @@ func NewCli(app *App, api *Api) *cli.App {
 				},
 			},
 			app.createAppCommands(),
+			app.createVariantCommands(),
 			app.createGroupCommands(),
 			app.createReleaseCommands(),
 			app.createClientCommands(),

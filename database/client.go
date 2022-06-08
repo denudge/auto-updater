@@ -2,6 +2,7 @@ package database
 
 import (
 	"github.com/denudge/auto-updater/catalog"
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 	"time"
 )
@@ -44,4 +45,85 @@ func (c *Client) ToCatalogClient() *catalog.Client {
 	}
 
 	return client
+}
+
+func (store *DbCatalogStore) RegisterClient(app *catalog.App, variant string, groups []string) (*catalog.Client, error) {
+	dbApp, err := store.getApp(app.Vendor, app.Product, false)
+	if err != nil {
+		return nil, err
+	}
+
+	// Make sure we have the right default groups
+	groupNames := make([]string, 0)
+	groupObjs := make([]Group, 0)
+	if groups != nil && len(groups) > 0 {
+		groupNames = groups
+
+		groupObjs, err = store.getGroups(dbApp, groupNames)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	client := Client{
+		AppId:     dbApp.Id,
+		Variant:   variant,
+		Uuid:      uuid.NewString(),
+		Active:    true,
+		Locked:    false,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	stmt := store.db.NewInsert().
+		Model(&client)
+
+	if _, err := stmt.Exec(store.ctx); err != nil {
+		return nil, err
+	}
+
+	stored := Client{}
+
+	err = store.db.NewSelect().
+		Model(&stored).
+		Where("app_id = ?", dbApp.Id).
+		Where("uuid = ?", client.Uuid).
+		Relation("App").
+		Relation("Groups").
+		Scan(store.ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(groupObjs) > 0 {
+		for _, group := range groupObjs {
+			groupRelation := ClientToGroup{
+				GroupId:   group.Id,
+				ClientId:  stored.Id,
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}
+
+			if _, err = store.db.NewInsert().
+				Model(&groupRelation).
+				Exec(store.ctx); err != nil {
+				return nil, err
+			}
+		}
+
+		err = store.db.NewSelect().
+			Model(&stored).
+			Where("app_id = ?", dbApp.Id).
+			Where("uuid = ?", client.Uuid).
+			Relation("App").
+			Relation("Groups").
+			Scan(store.ctx)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return stored.ToCatalogClient(), nil
 }

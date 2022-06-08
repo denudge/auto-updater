@@ -31,6 +31,8 @@ func (app *App) createGroupCommands() *cli.Command {
 					// time.Time.Before() cannot be used because the database might drop fractional seconds
 					if stored.Created.Unix() < g.Created.Unix() {
 						fmt.Println("Group has already been there.")
+					} else {
+						fmt.Printf("Group \"%s\" have been created.\n", stored.Name)
 					}
 
 					return nil

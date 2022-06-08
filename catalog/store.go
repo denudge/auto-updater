@@ -14,6 +14,10 @@ type StoreInterface interface {
 	// Client management
 	RegisterClient(app *App, variant string, groups []string) (*Client, error)
 
+	// Variant management
+	ListVariants(filter VariantFilter, limit int) ([]*Variant, error)
+	StoreVariant(variant *Variant, allowUpdate bool) (*Variant, error)
+
 	// Release management
 	StoreRelease(release *Release, allowUpdate bool) (*Release, error)
 	FetchReleases(filter Filter, limit int) ([]*Release, error)

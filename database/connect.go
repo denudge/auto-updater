@@ -43,4 +43,5 @@ func registerRelations(db *bun.DB) {
 	// This should be done before you use the models for the first time.
 	db.RegisterModel((*ReleaseToGroup)(nil))
 	db.RegisterModel((*ClientToGroup)(nil))
+	db.RegisterModel((*VariantToDefaultGroup)(nil))
 }

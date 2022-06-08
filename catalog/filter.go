@@ -68,3 +68,9 @@ type GroupFilter struct {
 	Product string
 	Name    string
 }
+
+type VariantFilter struct {
+	Vendor  string
+	Product string
+	Name    string
+}
