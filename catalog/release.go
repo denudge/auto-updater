@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -50,8 +51,16 @@ func (r *Release) String() string {
 		version = fmt.Sprintf("%s (\"%s\")", r.Version, r.Alias)
 	}
 
-	if r.Unstable {
-		version = fmt.Sprintf("%s [unstable]", version)
+	if r.Unstable || r.ShouldUpgrade > None {
+		crit := []string{}
+		if r.Unstable {
+			crit = append(crit, "unstable")
+		}
+		if r.ShouldUpgrade > None {
+			crit = append(crit, "Upgrade "+r.ShouldUpgrade.String())
+		}
+
+		version = fmt.Sprintf("%s [%s]", version, strings.Join(crit, ", "))
 	}
 
 	return fmt.Sprintf(
