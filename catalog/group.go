@@ -13,13 +13,17 @@ type Group struct {
 }
 
 func FormatGroups(groups []string) string {
-	str := "("
-	if len(groups) > 0 {
-		str += strings.Join(groups, ", ")
-	} else {
-		str += "public"
-	}
-	str += ")"
+	return FormatStringList(groups, "public")
+}
 
-	return str
+func FormatVariants(variants []string) string {
+	return FormatStringList(variants, "")
+}
+
+func FormatStringList(strs []string, empty string) string {
+	if strs != nil && len(strs) > 0 {
+		return "(" + strings.Join(strs, ", ") + ")"
+	} else {
+		return "(" + empty + ")"
+	}
 }

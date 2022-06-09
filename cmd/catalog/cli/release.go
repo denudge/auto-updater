@@ -41,9 +41,45 @@ func (console *Console) createReleaseCommands() *cli.Command {
 						return err
 					}
 
-					for _, release := range releases {
-						fmt.Printf("%s\n", release)
+					printReleases(releases)
+
+					return nil
+				},
+			},
+			{
+				Name:  "show",
+				Usage: "show release details",
+				Flags: createReleaseFilterFlags(),
+				Before: func(c *cli.Context) error {
+					groups := c.StringSlice("group")
+					if groups != nil && len(groups) > 0 {
+						return checkGroupsInput(groups)
 					}
+
+					return nil
+				},
+				Action: func(c *cli.Context) error {
+					filter := parseReleaseFilterFlags(c)
+					releases, err := console.app.Store.FetchReleases(filter, 0)
+					if err != nil {
+						return err
+					}
+
+					if releases == nil || len(releases) < 1 {
+						fmt.Println("No release found.")
+
+						return nil
+					}
+
+					if releases != nil && len(releases) > 1 {
+						fmt.Printf("Filter is ambiguous. Please set more specific filters.\n\n")
+						fmt.Println("Candidates:")
+						printReleases(releases)
+
+						return nil
+					}
+
+					printReleaseDetails(releases[0])
 
 					return nil
 				},
@@ -203,4 +239,27 @@ func parseReleaseFilterFlags(c *cli.Context) catalog.Filter {
 	filter.CompleteVersions()
 
 	return filter
+}
+
+func printReleases(releases []*catalog.Release) {
+	for _, release := range releases {
+		fmt.Printf("%s\n", release)
+	}
+}
+
+func printReleaseDetails(release *catalog.Release) {
+	fmt.Printf("Vendor: %s\n", release.App.Vendor)
+	fmt.Printf("Product: %s\n", release.App.Product)
+	fmt.Printf("Variant: %s\n", release.Variant)
+	fmt.Printf("Version: %s\n", release.Version)
+	fmt.Printf("Alias: %s\n", release.Alias)
+	fmt.Printf("OS: %s\n", release.OS)
+	fmt.Printf("Arch: %s\n", release.Arch)
+	fmt.Printf("Published: %s\n", release.Date.Format(time.RFC1123))
+	fmt.Printf("Unstable: %v\n", release.Unstable)
+	fmt.Printf("Groups: %s\n", catalog.FormatGroups(release.Groups))
+	fmt.Printf("Upgrade Target: %s\n", release.UpgradeTarget)
+	fmt.Printf("Criticality: %v\n", release.ShouldUpgrade)
+	fmt.Printf("Format: %s\n", release.Format)
+	fmt.Printf("Link: %s\n", release.Link)
 }

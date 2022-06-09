@@ -29,6 +29,8 @@ func newCli(updater *app.Updater) *cli.App {
 				Usage: "initialize the updater client",
 				Flags: createInitializationFlags(),
 				Action: func(c *cli.Context) error {
+					// TODO: Check if config file already exists (and if, return error)
+
 					state := parseInitializationFlags(c)
 
 					if state.ClientId == "" {

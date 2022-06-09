@@ -43,7 +43,7 @@ func (console *Console) createAppCommands() *cli.Command {
 			},
 			{
 				Name:  "show",
-				Usage: "show specific app",
+				Usage: "show app details",
 				Flags: createMinAppFlags(),
 				Action: func(c *cli.Context) error {
 					a := parseAppFlags(c)
@@ -53,17 +53,7 @@ func (console *Console) createAppCommands() *cli.Command {
 						return err
 					}
 
-					fmt.Printf("Vendor: %s\n", app.Vendor)
-					fmt.Printf("Product: %s\n", app.Product)
-					fmt.Printf("Active: %v\n", app.Active)
-					fmt.Printf("Locked: %v\n", app.Locked)
-					fmt.Printf("AllowRegister: %v\n", app.AllowRegister)
-					fmt.Printf("Variants: %v\n", catalog.FormatGroups(app.Variants))
-					fmt.Printf("Groups: %v\n", catalog.FormatGroups(app.Groups))
-					fmt.Printf("Default Groups: %v\n", catalog.FormatGroups(app.DefaultGroups))
-					fmt.Printf("Created: %s\n", app.Created.Format(time.RFC1123))
-					fmt.Printf("Updated: %s\n", app.Updated.Format(time.RFC1123))
-
+					printAppDetails(app)
 					return nil
 				},
 			},
@@ -89,7 +79,7 @@ func (console *Console) createAppCommands() *cli.Command {
 						return err
 					}
 
-					console.printApp(a)
+					printApp(a)
 
 					return nil
 				},
@@ -139,13 +129,13 @@ func (console *Console) ListApps(limit int) error {
 	}
 
 	for _, a := range apps {
-		console.printApp(a)
+		printApp(a)
 	}
 
 	return nil
 }
 
-func (console *Console) printApp(a *catalog.App) {
+func printApp(a *catalog.App) {
 	groups := ""
 	if a.DefaultGroups != nil && len(a.DefaultGroups) > 0 {
 		defaultGroups := catalog.FormatGroups(a.DefaultGroups)
@@ -155,4 +145,17 @@ func (console *Console) printApp(a *catalog.App) {
 	}
 
 	fmt.Printf("%s, default groups: %s\n", a, groups)
+}
+
+func printAppDetails(app *catalog.App) {
+	fmt.Printf("Vendor: %s\n", app.Vendor)
+	fmt.Printf("Product: %s\n", app.Product)
+	fmt.Printf("Variants: %v\n", catalog.FormatVariants(app.Variants))
+	fmt.Printf("Active: %v\n", app.Active)
+	fmt.Printf("Locked: %v\n", app.Locked)
+	fmt.Printf("AllowRegister: %v\n", app.AllowRegister)
+	fmt.Printf("Groups: %v\n", catalog.FormatGroups(app.Groups))
+	fmt.Printf("Default Groups: %v\n", catalog.FormatGroups(app.DefaultGroups))
+	fmt.Printf("Created: %s\n", app.Created.Format(time.RFC1123))
+	fmt.Printf("Updated: %s\n", app.Updated.Format(time.RFC1123))
 }
