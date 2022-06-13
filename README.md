@@ -1,3 +1,5 @@
+Disclaimer: This project is work-in-progress.
+
 # Auto-Updater
 
 Keep your distributed on-premise software up-to-date
