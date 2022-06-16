@@ -17,11 +17,20 @@ type Updater struct {
 func NewUpdater(configFileName string, baseUrl string) *Updater {
 	state, _ := updater.ReadStateFromFile(configFileName)
 
+	serverUrl := ""
+	if state != nil {
+		serverUrl = state.Server
+	}
+
+	if baseUrl != "" {
+		serverUrl = baseUrl
+	}
+
 	return &Updater{
 		ConfigFileName: configFileName,
-		BaseUrl:        baseUrl,
+		BaseUrl:        serverUrl,
 		State:          state, // might be nil here
-		Client:         api.NewApiClient(baseUrl),
+		Client:         api.NewApiClient(serverUrl),
 	}
 }
 
@@ -31,6 +40,12 @@ func (u *Updater) CheckStateConfiguration() error {
 	}
 
 	return nil
+}
+
+func (u *Updater) InitAndCheckServerConfig(configFileName string, baseUrl string) error {
+	u.Init(configFileName, baseUrl)
+
+	return u.CheckServerConfiguration()
 }
 
 func (u *Updater) Init(configFileName string, baseUrl string) {
@@ -52,7 +67,7 @@ func (u *Updater) Init(configFileName string, baseUrl string) {
 }
 
 func (u *Updater) CheckServerConfiguration() error {
-	if u.BaseUrl != "" && !strings.HasPrefix(u.BaseUrl, "http") && u.Client != nil {
+	if u.BaseUrl == "" || !strings.HasPrefix(u.BaseUrl, "http") || u.Client == nil {
 		return fmt.Errorf("catalog server address is missing or malformed (must start with \"http\")")
 	}
 

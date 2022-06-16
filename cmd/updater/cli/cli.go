@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"github.com/denudge/auto-updater/catalog"
 	"github.com/denudge/auto-updater/cmd/updater/app"
 	"github.com/denudge/auto-updater/updater"
 	"github.com/urfave/cli/v2"
@@ -26,9 +27,7 @@ func newCli(updaterApp *app.Updater) *cli.App {
 		Usage: "the auto-updater client console",
 		Flags: createGlobalFlags(),
 		Before: func(c *cli.Context) error {
-			updaterApp.Init(c.String("config-file"), c.String("server-address"))
-
-			return updaterApp.CheckServerConfiguration()
+			return updaterApp.InitAndCheckServerConfig(c.String("config-file"), c.String("server-address"))
 		},
 		Commands: []*cli.Command{
 			{
@@ -60,6 +59,37 @@ func newCli(updaterApp *app.Updater) *cli.App {
 					}
 
 					return updaterApp.SaveState(&state)
+				},
+			},
+			{
+				Name:  "upgrade-step",
+				Usage: "find next upgrade",
+				Before: func(c *cli.Context) error {
+					return updaterApp.CheckStateConfiguration()
+				},
+				Action: func(c *cli.Context) error {
+					state := updaterApp.State.ToClientState()
+
+					step, err := updaterApp.Client.FindNextUpgrade(state)
+					if err != nil {
+						return err
+					}
+
+					if step == nil {
+						fmt.Println("Could not fetch upgrade step (unknown reason)")
+
+						return nil
+					}
+
+					if step.Release.Version == "" {
+						fmt.Println("No upgrade available.")
+
+						return nil
+					}
+
+					fmt.Printf("Available upgrade: %s\n", formatReleaseInfo(step.Release, step.Criticality))
+
+					return nil
 				},
 			},
 		},
@@ -98,4 +128,14 @@ func createInitializationFlags() []cli.Flag {
 		&cli.StringFlag{Name: "variant", Usage: "Product variant", Required: true},
 		&cli.StringFlag{Name: "client-id", Usage: "Optional: Client ID, if you already have one"},
 	}
+}
+
+func formatReleaseInfo(release catalog.Release, criticality catalog.Criticality) string {
+	str := fmt.Sprintf("Version %s", release.Version)
+
+	if release.Unstable {
+		str += " [unstable]"
+	}
+
+	return str + fmt.Sprintf("; Criticality: %s", criticality)
 }

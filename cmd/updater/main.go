@@ -7,9 +7,12 @@ import (
 	"os"
 )
 
+const DefaultConfigFileName = "updater.cfg"
+
 func main() {
 	// Users can override (re-init) these values with CLI parameters
-	updaterApp := app.NewUpdater("updater.cfg", "")
+	// or they are read from a given config file
+	updaterApp := app.NewUpdater(DefaultConfigFileName, "")
 
 	client := cli.NewConsole(updaterApp)
 

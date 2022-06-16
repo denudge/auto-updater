@@ -1,5 +1,7 @@
 package catalog
 
+import "fmt"
+
 type Criticality int
 
 const (
@@ -31,4 +33,25 @@ func (c Criticality) String() string {
 	}
 
 	return "Unknown"
+}
+
+func CriticalityFromString(value string) (Criticality, error) {
+	switch value {
+	case "None":
+		return None, nil
+	case "Possible":
+		return Possible, nil
+	case "Recommended":
+		return Recommended, nil
+	case "Strongly Recommended":
+		return StronglyRecommended, nil
+	case "Critical":
+		return Critical, nil
+	case "Enforced":
+		return Enforced, nil
+	case "Exceptional":
+		return Exceptional, nil
+	}
+
+	return 0, fmt.Errorf("unknown criticality \"%s\"", value)
 }

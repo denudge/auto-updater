@@ -27,6 +27,8 @@ func NewApi(catalog *app.Catalog) *Api {
 func (api *Api) setUpRoutes() {
 	api.mux.Handle("/", http.HandlerFunc(api.homePage))
 	api.mux.Handle("/register", http.HandlerFunc(api.register))
+	// api.mux.Handle("/upgrade/check", http.HandlerFunc(api.findNextUpgrade))
+	api.mux.Handle("/upgrade/step", http.HandlerFunc(api.findNextUpgrade))
 }
 
 func (api *Api) homePage(w http.ResponseWriter, r *http.Request) {

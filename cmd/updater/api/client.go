@@ -30,10 +30,28 @@ func (client *CatalogClient) RegisterClient(vendor string, product string, varia
 
 	response := api.RegisterResponse{}
 
-	err := client.doJson(request, http.MethodPost, "register", &response)
+	err := client.doJson(request, http.MethodPost, "/register", &response)
 	if err != nil {
 		return nil, err
 	}
 
 	return response.ToClientState(), nil
+}
+
+func (client *CatalogClient) FindNextUpgrade(state *catalog.ClientState) (*catalog.UpgradeStep, error) {
+	request := api.NewClientStateRequest(state)
+
+	response := api.UpgradeStepResponse{}
+
+	err := client.doJson(request, http.MethodPost, "/upgrade/step", &response)
+	if err != nil {
+		return nil, err
+	}
+
+	step, err := response.ToUpgradeStep()
+	if err != nil {
+		return nil, err
+	}
+
+	return &step, nil
 }
