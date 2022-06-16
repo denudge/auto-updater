@@ -20,22 +20,32 @@ func NewConsole(updater *app.Updater) *Console {
 	}
 }
 
-func newCli(updater *app.Updater) *cli.App {
+func newCli(updaterApp *app.Updater) *cli.App {
 	return &cli.App{
-		Name: "updater",
+		Name:  "updater",
+		Usage: "the auto-updater client console",
+		Flags: createGlobalFlags(),
+		Before: func(c *cli.Context) error {
+			updaterApp.Init(c.String("config-file"), c.String("server-address"))
+
+			return updaterApp.CheckServerConfiguration()
+		},
 		Commands: []*cli.Command{
 			{
 				Name:  "init",
 				Usage: "initialize the updater client",
 				Flags: createInitializationFlags(),
 				Action: func(c *cli.Context) error {
-					// TODO: Check if config file already exists (and if, return error)
+					if updaterApp.State != nil {
+						return fmt.Errorf("config file already exists")
+					}
 
 					state := parseInitializationFlags(c)
+					state.Server = updaterApp.BaseUrl
 
 					if state.ClientId == "" {
 						// We need to register
-						response, err := updater.Client.RegisterClient(state.Vendor, state.Product, state.Variant)
+						response, err := updaterApp.Client.RegisterClient(state.Vendor, state.Product, state.Variant)
 						if err != nil {
 							return err
 						}
@@ -49,7 +59,7 @@ func newCli(updater *app.Updater) *cli.App {
 						fmt.Printf("Successfully registered with client ID %s\n", state.ClientId)
 					}
 
-					return nil
+					return updaterApp.SaveState(&state)
 				},
 			},
 		},
@@ -61,6 +71,13 @@ type ClientState struct {
 	Vendor   string
 	Product  string
 	Variant  string
+}
+
+func createGlobalFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{Name: "server-address", Usage: "catalog server address", Required: false},
+		&cli.StringFlag{Name: "config-file", Usage: "config file", Required: false},
+	}
 }
 
 func parseInitializationFlags(c *cli.Context) updater.State {
