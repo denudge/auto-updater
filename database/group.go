@@ -197,9 +197,6 @@ func (store *DbCatalogStore) getGroupMap(appId int64) (map[string]Group, error) 
 
 	groupMap := make(map[string]Group)
 	for _, group := range groups {
-		if err != nil {
-			return nil, fmt.Errorf("cannot find group \"%s\"", group)
-		}
 		groupMap[group.Name] = group
 	}
 
